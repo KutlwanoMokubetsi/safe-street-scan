@@ -3,6 +3,7 @@ import { authGuard, guestGuard, moderatorGuard } from './core/guards';
 
 export const routes: Routes = [
   { path: 'welcome', canActivate: [guestGuard], loadComponent: () => import('./pages/welcome').then(m => m.Welcome), title: 'CrimeSpot' },
+  { path: 'login', canActivate: [guestGuard], loadComponent: () => import('./pages/login').then(m => m.Login), title: 'Sign in · CrimeSpot' },
 
   { path: '', canActivate: [authGuard], loadComponent: () => import('./pages/dashboard').then(m => m.Dashboard), title: 'CrimeSpot' },
   { path: 'map', canActivate: [authGuard], loadComponent: () => import('./pages/map-page').then(m => m.MapPage), title: 'Map · CrimeSpot' },

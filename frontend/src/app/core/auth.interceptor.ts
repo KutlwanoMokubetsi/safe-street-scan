@@ -1,7 +1,7 @@
 import { HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
 import { catchError, from, switchMap, throwError } from 'rxjs';
 import { environment } from '../../environments/environment';
-import { keycloak } from './keycloak';
+import { clearSession, keycloak } from './keycloak';
 
 /** Adds a fresh Keycloak access token to every API call. */
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
@@ -14,8 +14,12 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
       return next(token ? req.clone({ setHeaders: { Authorization: `Bearer ${token}` } }) : req);
     }),
     catchError((err: HttpErrorResponse) => {
-      // The Keycloak session ended (expired or signed out elsewhere): sign in again.
-      if (err.status === 401) keycloak.login({ redirectUri: location.href });
+      // The session ended (expired or signed out elsewhere): back to our sign-in page.
+      if (err.status === 401) {
+        clearSession();
+        keycloak.clearToken();
+        location.assign('/login');
+      }
       return throwError(() => err);
     }),
   );

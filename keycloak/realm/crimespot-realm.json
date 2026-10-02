@@ -19,7 +19,7 @@
   "ssoSessionMaxLifespan": 2592000,
   "ssoSessionIdleTimeoutRememberMe": 2592000,
   "ssoSessionMaxLifespanRememberMe": 5184000,
-  "loginTheme": "keycloak.v2",
+  "loginTheme": "crimespot",
   "passwordPolicy": "length(8)",
   "clients": [
     {

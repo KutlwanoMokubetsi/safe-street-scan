@@ -54,6 +54,7 @@ import { ToastService } from '../core/toast.service';
           <button class="btn" type="button" (click)="auth.manageAccount()">Password and security</button>
           <button class="btn btn-danger" type="button" (click)="auth.logout()">Sign out</button>
         </div>
+        <p class="muted small legal"><a href="/privacy.html">Privacy policy</a> · <a href="/terms.html">Terms of use</a></p>
       </section>
     </div>
   `,
@@ -64,6 +65,7 @@ import { ToastService } from '../core/toast.service';
     p { margin-bottom: 12px; }
     .warn { color: #7A1F16; }
     .row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .legal { margin: 16px 0 0; }
   `,
 })
 export class Profile implements OnInit {

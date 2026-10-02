@@ -1,0 +1,105 @@
+/* CrimeSpot brand on top of Keycloak v2 (PatternFly 5). Tokens match the web app. */
+@import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Semi+Condensed:wght@600;700&display=swap');
+
+:root {
+  --cs-ink: #17202B;
+  --cs-ink-soft: #2A3542;
+  --cs-vest: #F5C518;
+  --cs-vest-deep: #D9AA00;
+  --cs-line: #D8DDE1;
+  --cs-muted: #5E6873;
+  --cs-risk: #C0392B;
+  --cs-font: 'Barlow', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --cs-font-head: 'Barlow Semi Condensed', 'Barlow', 'Arial Narrow', system-ui, sans-serif;
+
+  /* PatternFly tokens */
+  --pf-v5-global--FontFamily--text: var(--cs-font);
+  --pf-v5-global--FontFamily--heading: var(--cs-font-head);
+  --pf-v5-global--primary-color--100: var(--cs-ink);
+  --pf-v5-global--primary-color--200: var(--cs-ink-soft);
+  --pf-v5-global--link--Color: var(--cs-ink);
+  --pf-v5-global--link--Color--hover: var(--cs-ink-soft);
+  --pf-v5-global--BorderRadius--sm: 4px;
+  --pf-v5-global--active-color--100: var(--cs-ink);
+
+  /* Keycloak v2 hooks: hi-vis band on top of the card, no Keycloak background art */
+  --keycloak-card-top-color: var(--cs-vest);
+  --keycloak-bg-logo-url: none;
+}
+
+.login-pf body,
+#keycloak-bg {
+  background: var(--cs-ink) !important;
+  font-family: var(--cs-font);
+}
+
+/* Brand above the card: pin + wordmark */
+#kc-header-wrapper {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  color: #fff; font: 700 1.9rem/1 var(--cs-font-head); letter-spacing: 0.01em;
+  padding: 8px 0 4px; text-transform: none;
+}
+#kc-header-wrapper::before {
+  content: ''; width: 34px; height: 34px; flex: none;
+  background: url('../img/crimespot-pin.svg') no-repeat center / contain;
+}
+
+/* Card */
+.pf-v5-c-login__main {
+  border-radius: 8px; overflow: hidden;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+}
+.pf-v5-c-login__main-header { border-top-width: 6px; }
+#kc-page-title, .pf-v5-c-title {
+  font-family: var(--cs-font-head); font-weight: 700; color: var(--cs-ink);
+}
+
+/* Fields */
+.pf-v5-c-form__label-text { font-weight: 600; }
+.pf-v5-c-form-control { border-radius: 4px; }
+.pf-v5-c-form-control:focus-within {
+  --pf-v5-c-form-control--after--BorderBottomColor: var(--cs-ink);
+  box-shadow: 0 0 0 3px rgba(245, 197, 24, 0.45);
+}
+
+/* Buttons */
+.pf-v5-c-button { border-radius: 4px; font-weight: 600; min-height: 44px; }
+.pf-v5-c-button.pf-m-primary {
+  --pf-v5-c-button--m-primary--BackgroundColor: var(--cs-ink);
+  --pf-v5-c-button--m-primary--hover--BackgroundColor: var(--cs-ink-soft);
+  --pf-v5-c-button--m-primary--focus--BackgroundColor: var(--cs-ink-soft);
+  --pf-v5-c-button--m-primary--active--BackgroundColor: var(--cs-ink-soft);
+}
+.pf-v5-c-button.pf-m-secondary {
+  --pf-v5-c-button--m-secondary--Color: var(--cs-ink);
+  --pf-v5-c-button--m-secondary--BorderColor: #C4CBD1;
+  --pf-v5-c-button--m-secondary--hover--Color: var(--cs-ink);
+  --pf-v5-c-button--m-secondary--hover--BorderColor: var(--cs-ink);
+}
+:focus-visible { outline: 3px solid var(--cs-vest) !important; outline-offset: 2px; }
+
+/* "Or continue with" + Google button, inset to line up with the form */
+#kc-social-providers ul {
+  padding-left: var(--pf-v5-c-login__main-body--PaddingLeft) !important;
+  padding-right: var(--pf-v5-c-login__main-body--PaddingRight) !important;
+}
+#kc-social-providers .pf-v5-c-button { justify-content: center !important; gap: 10px; }
+#kc-social-providers .pf-v5-c-button span { margin: 0 !important; }
+
+/* Links and footer */
+.pf-v5-c-login__main-footer-band { border-top: 1px solid var(--cs-line); }
+.pf-v5-c-login__main-footer-band:last-child { padding-bottom: 20px !important; }
+a { text-decoration: underline; text-underline-offset: 2px; }
+a.pf-v5-c-button { text-decoration: none; }
+input[type="checkbox"], input[type="radio"] { accent-color: var(--cs-ink); }
+
+/* Errors in the app's risk red */
+.pf-v5-c-alert.pf-m-danger, .pf-v5-c-helper-text__item.pf-m-error {
+  --pf-v5-c-alert--m-danger__title--Color: var(--cs-risk);
+  --pf-v5-c-helper-text__item--m-error--Color: var(--cs-risk);
+}
+
+@media (max-width: 600px) {
+  .pf-v5-c-login__container { padding-inline: 12px; }
+  #kc-header-wrapper { font-size: 1.6rem; }
+}

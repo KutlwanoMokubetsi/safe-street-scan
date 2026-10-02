@@ -2,7 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../environments/environment';
-import { keycloak } from './keycloak';
+import { clearSession, keycloak } from './keycloak';
 import { User } from './models';
 
 @Injectable({ providedIn: 'root' })
@@ -60,6 +60,7 @@ export class AuthService {
   }
 
   logout(): void {
+    clearSession();
     keycloak.logout({ redirectUri: `${location.origin}/welcome` });
   }
 }
