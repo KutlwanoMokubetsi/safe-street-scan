@@ -25,11 +25,14 @@ public class ReportService {
     private final CrimeReportRepository reports;
     private final za.co.crimespot.realtime.RealtimeHub hub;
     private final AreaAlertService areaAlerts;
+    private final za.co.crimespot.common.ReadCache cache;
 
-    public ReportService(CrimeReportRepository reports, za.co.crimespot.realtime.RealtimeHub hub, AreaAlertService areaAlerts) {
+    public ReportService(CrimeReportRepository reports, za.co.crimespot.realtime.RealtimeHub hub, AreaAlertService areaAlerts,
+                         za.co.crimespot.common.ReadCache cache) {
         this.reports = reports;
         this.hub = hub;
         this.areaAlerts = areaAlerts;
+        this.cache = cache;
     }
 
     public record CreateCommand(CrimeType crimeType, String description, String locationName,
@@ -75,8 +78,11 @@ public class ReportService {
                 PageRequest.of(0, MAX_AREA_RESULTS));
     }
 
+    /** Shared by everyone, so cached; the per-viewer "mine" flag is added after. */
     public List<CrimeReport> recent(int limit) {
-        return reports.findByStatusInOrderByOccurredAtDesc(VISIBLE, PageRequest.of(0, Math.min(limit, 50)));
+        int n = Math.max(1, Math.min(limit, 50));
+        return cache.get("recent:" + n, "reports",
+                () -> reports.findByStatusInOrderByOccurredAtDesc(VISIBLE, PageRequest.of(0, n)));
     }
 
     public List<CrimeReport> mine(AuthUser me) {

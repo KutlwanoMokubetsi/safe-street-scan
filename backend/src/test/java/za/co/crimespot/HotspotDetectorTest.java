@@ -29,16 +29,14 @@ class HotspotDetectorTest {
     }
 
     @Test
-    void clusterBecomesHotspotAndSparseAreaDoesNot() {
+    void denseGroupBecomesHotspotAndScatteredReportsAreNoise() {
         List<CrimeReport> reports = new ArrayList<>();
-        // Four robberies around Joburg CBD within ~200 m
         for (int i = 0; i < 4; i++) {
             reports.add(report(-26.2041 + i * 0.0003, 28.0473, CrimeType.ROBBERY, ReportStatus.VERIFIED, 1, "Park Station"));
         }
-        // A single report far away
         reports.add(report(-33.9249, 18.4241, CrimeType.THEFT, ReportStatus.PENDING, 2, "Cape Town CBD"));
 
-        var hotspots = HotspotDetector.detect(reports, 0.005, 3, NOW);
+        var hotspots = HotspotDetector.detect(reports, 250, 3, NOW);
 
         assertEquals(1, hotspots.size());
         var h = hotspots.get(0);
@@ -50,15 +48,32 @@ class HotspotDetectorTest {
     }
 
     @Test
-    void oldPendingMinorCrimesScoreLowerThanRecentVerifiedViolentCrimes() {
+    void clusterAlongAStreetIsNotSplit() {
+        // 10 reports ~130 m apart in a line (1.2 km long): one DBSCAN cluster, where a grid would split it.
+        List<CrimeReport> reports = new ArrayList<>();
+        for (int i = 0; i < 10; i++) {
+            reports.add(report(-26.2041 + i * 0.0012, 28.0473, CrimeType.THEFT, ReportStatus.VERIFIED, 1, "Main Rd"));
+        }
+        assertEquals(1, HotspotDetector.detect(reports, 250, 3, NOW).size());
+    }
+
+    @Test
+    void recentViolentVerifiedOutscoresOldMinorPending() {
         List<CrimeReport> minor = new ArrayList<>();
         List<CrimeReport> violent = new ArrayList<>();
         for (int i = 0; i < 3; i++) {
             minor.add(report(-26.1, 28.0, CrimeType.VANDALISM, ReportStatus.PENDING, 25, null));
             violent.add(report(-26.1, 28.0, CrimeType.HIJACKING, ReportStatus.VERIFIED, 0, null));
         }
-        double minorScore = HotspotDetector.detect(minor, 0.005, 3, NOW).get(0).intensity();
-        double violentScore = HotspotDetector.detect(violent, 0.005, 3, NOW).get(0).intensity();
+        double minorScore = HotspotDetector.detect(minor, 250, 3, NOW).get(0).intensity();
+        double violentScore = HotspotDetector.detect(violent, 250, 3, NOW).get(0).intensity();
         assertTrue(violentScore > minorScore);
+    }
+
+    @Test
+    void trendRisesWhenIncidentsAreRecent() {
+        List<CrimeReport> reports = new ArrayList<>();
+        for (int i = 0; i < 5; i++) reports.add(report(-26.1, 28.0, CrimeType.ROBBERY, ReportStatus.VERIFIED, i % 3, null));
+        assertEquals(HotspotDetector.Trend.RISING, HotspotDetector.detect(reports, 250, 3, NOW).get(0).trend());
     }
 }

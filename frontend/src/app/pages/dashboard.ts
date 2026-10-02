@@ -6,7 +6,8 @@ import { RealtimeService } from '../core/realtime.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AuthService } from '../core/auth.service';
 import { crimeColor, crimeLabel, riskLevel, timeAgo } from '../core/crime-types';
-import { Hotspot, Report, Stats } from '../core/models';
+import { Hotspot, News, Report, Stats } from '../core/models';
+import { currentPosition } from '../core/geo';
 import { errorMessage } from '../core/auth.interceptor';
 
 @Component({
@@ -40,7 +41,7 @@ import { errorMessage } from '../core/auth.interceptor';
         <section class="panel">
           <div class="panel-head"><h2>Latest reports</h2></div>
           @if (loading()) {
-            <p class="empty">Loading reports…</p>
+            <div aria-busy="true" aria-label="Loading">@for (i of [1,2,3]; track i) {<div class="sk-row"><div class="sk sk-line w40"></div><div class="sk sk-line w90"></div><div class="sk sk-line w70"></div></div>}</div>
           } @else if (reports().length === 0) {
             <div class="empty">
               <p>No reports yet. If something happened near you, add it so others know.</p>
@@ -70,7 +71,7 @@ import { errorMessage } from '../core/auth.interceptor';
             <span class="muted small">Last 30 days</span>
           </div>
           @if (loading()) {
-            <p class="empty">Loading hotspots…</p>
+            <div aria-busy="true" aria-label="Loading">@for (i of [1,2,3]; track i) {<div class="sk-row"><div class="sk sk-line w40"></div><div class="sk sk-line w90"></div><div class="sk sk-line w70"></div></div>}</div>
           } @else if (hotspots().length === 0) {
             <p class="empty">No hotspots right now. A hotspot appears when 3 or more incidents are reported within about 500 m.</p>
           } @else {
@@ -87,6 +88,10 @@ import { errorMessage } from '../core/auth.interceptor';
                       <span [style.width.%]="pct(h.intensityScore)" [style.background]="risk(h.intensityScore).color"></span>
                     </div>
                     <p class="muted small">{{ h.crimeCount }} incidents · mostly {{ label(h.topCrimeType).toLowerCase() }}</p>
+                    <p class="small insight">
+                      @if (h.trend && h.trend !== 'STEADY') { <span class="trend-{{ h.trend }}">{{ h.trend === 'RISING' ? '▲ Rising' : '▼ Falling' }}</span> }
+                      @if (h.peakHours) { <span class="muted">Most incidents {{ h.peakHours }}</span> }
+                    </p>
                   </a>
                 </li>
               }
@@ -94,6 +99,28 @@ import { errorMessage } from '../core/auth.interceptor';
           }
         </section>
       </div>
+
+      <section class="panel news">
+        <div class="panel-head">
+          <h2>Local news{{ news()?.area ? ': ' + news()!.area : '' }}</h2>
+          <span class="muted small">Past 7 days</span>
+        </div>
+        @if (newsLoading()) {
+          <div aria-busy="true" aria-label="Loading">@for (i of [1,2,3]; track i) {<div class="sk-row"><div class="sk sk-line w40"></div><div class="sk sk-line w90"></div><div class="sk sk-line w70"></div></div>}</div>
+        } @else if (!news()?.items?.length) {
+          <p class="empty">No recent crime news found for this area.</p>
+        } @else {
+          <ul class="news-list">
+            @for (n of news()!.items; track n.url) {
+              <li>
+                <a [href]="n.url" target="_blank" rel="noopener noreferrer">{{ n.title }}</a>
+                <p class="muted small">{{ n.source }}@if (n.publishedAt) { · {{ ago(n.publishedAt) }} }</p>
+              </li>
+            }
+          </ul>
+        }
+        <p class="muted small attribution">Headlines from GDELT and Google News, matched to your area. CrimeSpot doesn't check news stories; open the source for details.</p>
+      </section>
     </div>
   `,
   styles: `
@@ -113,6 +140,12 @@ import { errorMessage } from '../core/auth.interceptor';
     .spots a { display: block; padding: 14px 16px; text-decoration: none; }
     .spots a:hover { background: var(--surface); }
     .risk { font-weight: 600; font-size: 0.9rem; white-space: nowrap; }
+    .insight { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 2px; }
+    .news { margin-top: 24px; }
+    .news-list li { padding: 12px 16px; border-bottom: 1px solid var(--line); }
+    .news-list a { font-weight: 600; text-decoration: none; }
+    .news-list a:hover { text-decoration: underline; }
+    .attribution { padding: 10px 16px 14px; }
     .meter { height: 6px; background: var(--surface); border-radius: 3px; margin: 8px 0 6px; overflow: hidden; }
     .meter span { display: block; height: 100%; }
     .err-box { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 16px; border-color: var(--risk); }
@@ -133,6 +166,8 @@ export class Dashboard implements OnInit {
   readonly reports = signal<Report[]>([]);
   readonly hotspots = signal<Hotspot[]>([]);
   readonly loading = signal(true);
+  readonly news = signal<News | null>(null);
+  readonly newsLoading = signal(true);
   readonly error = signal('');
 
   readonly label = crimeLabel;
@@ -147,6 +182,7 @@ export class Dashboard implements OnInit {
 
   ngOnInit(): void {
     this.load();
+    this.loadNews();
     this.rt.subscribe(() => this.load(true));
   }
 
@@ -164,5 +200,14 @@ export class Dashboard implements OnInit {
         },
         error: err => { this.error.set(errorMessage(err, "Couldn't load the overview.")); this.loading.set(false); },
       });
+  }
+
+  /** News for where you are now (or Johannesburg if location is off). Loaded once per visit. */
+  private async loadNews(): Promise<void> {
+    const pos = await currentPosition(6000);
+    this.api.news(pos).subscribe({
+      next: n => { this.news.set(n); this.newsLoading.set(false); },
+      error: () => { this.news.set(null); this.newsLoading.set(false); },
+    });
   }
 }

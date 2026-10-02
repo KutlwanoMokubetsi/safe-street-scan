@@ -14,10 +14,12 @@ public class StatsController {
 
     private final CrimeReportRepository reports;
     private final CrimeHotspotRepository hotspots;
+    private final za.co.crimespot.common.ReadCache cache;
 
-    public StatsController(CrimeReportRepository reports, CrimeHotspotRepository hotspots) {
+    public StatsController(CrimeReportRepository reports, CrimeHotspotRepository hotspots, za.co.crimespot.common.ReadCache cache) {
         this.reports = reports;
         this.hotspots = hotspots;
+        this.cache = cache;
     }
 
     public record Stats(long totalReports, long verifiedReports, long pendingReports,
@@ -25,6 +27,10 @@ public class StatsController {
 
     @GetMapping
     public Stats stats() {
+        return cache.get("stats", "reports", this::compute);
+    }
+
+    private Stats compute() {
         Instant now = Instant.now();
         return new Stats(
                 reports.countByStatusIn(ReportService.VISIBLE),

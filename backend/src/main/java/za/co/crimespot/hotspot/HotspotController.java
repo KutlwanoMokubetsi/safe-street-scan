@@ -19,11 +19,11 @@ public class HotspotController {
 
     public record HotspotDto(UUID id, String name, double centerLatitude, double centerLongitude,
                              int radiusMeters, double intensityScore, int crimeCount,
-                             CrimeType topCrimeType, Instant generatedAt) {
+                             CrimeType topCrimeType, String peakHours, String trend, Instant generatedAt) {
         static HotspotDto from(CrimeHotspot h) {
             return new HotspotDto(h.getId(), h.getName(), h.getCenterLatitude(), h.getCenterLongitude(),
                     h.getRadiusMeters(), h.getIntensityScore(), h.getCrimeCount(),
-                    h.getTopCrimeType(), h.getGeneratedAt());
+                    h.getTopCrimeType(), h.getPeakHours(), h.getTrend(), h.getGeneratedAt());
         }
     }
 

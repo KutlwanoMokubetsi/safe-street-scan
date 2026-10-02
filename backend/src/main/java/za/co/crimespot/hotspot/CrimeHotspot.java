@@ -36,6 +36,11 @@ public class CrimeHotspot {
     @Column(name = "top_crime_type")
     private CrimeType topCrimeType;
 
+    @Column(name = "peak_hours")
+    private String peakHours;
+
+    private String trend;
+
     @Column(name = "generated_at", nullable = false)
     private Instant generatedAt;
 
@@ -57,6 +62,10 @@ public class CrimeHotspot {
     public void setCrimeCount(int v) { this.crimeCount = v; }
     public CrimeType getTopCrimeType() { return topCrimeType; }
     public void setTopCrimeType(CrimeType v) { this.topCrimeType = v; }
+    public String getPeakHours() { return peakHours; }
+    public void setPeakHours(String v) { this.peakHours = v; }
+    public String getTrend() { return trend; }
+    public void setTrend(String v) { this.trend = v; }
     public Instant getGeneratedAt() { return generatedAt; }
     public void setGeneratedAt(Instant v) { this.generatedAt = v; }
     public Instant getValidUntil() { return validUntil; }

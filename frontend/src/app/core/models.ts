@@ -46,8 +46,13 @@ export interface Hotspot {
   intensityScore: number;
   crimeCount: number;
   topCrimeType?: CrimeType;
+  peakHours?: string;
+  trend?: 'RISING' | 'STEADY' | 'FALLING';
   generatedAt: string;
 }
+
+export interface NewsItem { title: string; url: string; source: string; publishedAt?: string; }
+export interface News { area: string; items: NewsItem[]; }
 
 export interface Stats {
   totalReports: number;

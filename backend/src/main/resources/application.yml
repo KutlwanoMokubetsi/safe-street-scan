@@ -5,14 +5,33 @@ server:
   error:
     include-stacktrace: never
     include-message: never
+  compression:
+    enabled: true
+    mime-types: application/json,application/problem+json
+    min-response-size: 1024
+  tomcat:
+    max-connections: 8192
+    accept-count: 200
 
 spring:
   application:
     name: crimespot-api
+  # Java 21 virtual threads: thousands of concurrent requests and sockets without a large thread pool.
+  threads:
+    virtual:
+      enabled: true
+  main:
+    banner-mode: off
   datasource:
     url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/crimespot}
     username: ${DATABASE_USERNAME:crimespot}
     password: ${DATABASE_PASSWORD:crimespot}
+    hikari:
+      # Small pool: queries are short, and Neon's free compute allows ~100 connections in total.
+      maximum-pool-size: ${DB_POOL_MAX:10}
+      minimum-idle: 2
+      idle-timeout: 300000
+      max-lifetime: 1500000
   jpa:
     open-in-view: false
     hibernate:
@@ -44,7 +63,7 @@ app:
   hotspots:
     lookback-days: 30
     min-reports: 3
-    cell-size-degrees: 0.005   # about 500 m
+    eps-meters: 250            # DBSCAN neighbourhood radius
     valid-hours: 24
     cron: "0 0 * * * *"         # every hour
 

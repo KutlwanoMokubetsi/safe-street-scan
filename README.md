@@ -102,6 +102,36 @@ The realm in `keycloak/realm/` is imported **only the first time** Keycloak star
 | GET | `/api/push/public-key` | Public |
 | POST | `/api/push/subscribe`, `/api/push/unsubscribe` | Signed in |
 
+## Capacity and resource use
+
+Designed to serve **1,000+ concurrent users on one Render Starter API instance** (512 MB):
+
+- **Java 21 virtual threads** for requests and WebSockets, instead of a fixed thread pool. No `synchronized` around blocking I/O, so virtual threads are never pinned.
+- **Lean JVM:** serial GC, capped metaspace, code cache and thread stacks, and exit on out-of-memory (Render restarts it).
+- **Shared read cache** for stats, recent reports and hotspots, cleared by the same commits that emit real-time events. A change costs one query, not one per user.
+- **Event jitter:** broadcast events reach apps with 0–1.5 s of random delay, spreading re-fetches out.
+- **Small per-socket buffers** and **HikariCP pool of 10**; JSON responses are gzip-compressed.
+- **No nginx:** Render's edge already terminates TLS, compresses, serves HTTP/2 and hosts the static web app on a CDN. An extra proxy would add memory and latency without adding capacity.
+
+Verify on your deployment with `docs/loadtest/crimespot-1000.js` (k6). Scaling past one instance needs a shared event bus (e.g. Redis pub/sub) for WebSockets; see `docs/FLUTTER_PLAN.md`, section 8.
+
+## Hotspots (machine learning)
+
+Hotspots are found with **DBSCAN** (density-based clustering; ε = 250 m, minimum 3 reports) over the last 30 days of non-rejected reports, recalculated hourly. Unlike a grid, clusters follow streets and areas of any shape. Each hotspot gets:
+
+- **Intensity:** sum of report weights (severity × recency with a ~14-day decay × 0.6 if unverified), scaled 0–1.
+- **Peak hours:** the 4-hour window (SAST) with most incidents, if it holds at least half.
+- **Trend:** incidents per day in the last 7 days vs the 23 before (rising above 1.5×, falling below 0.5×).
+
+## Local news
+
+`GET /api/news?lat=&lng=` returns crime headlines for the user's town:
+
+1. **Town:** OpenStreetMap Nominatim reverse geocoding, from a position rounded to ~5 km (cached 7 days, ≤1 request/s).
+2. **Headlines:** GDELT DOC 2.0 API (free, no key, ≤1 request per 5 s), falling back to Google News RSS. Cached 30 minutes per town, so 1,000 users in one city cost ~1 upstream call per half hour.
+
+Only headline, source, date and link are kept. Twitter/X isn't used: its free tier can't read posts.
+
 ## Mobile app
 
 See [docs/FLUTTER_PLAN.md](docs/FLUTTER_PLAN.md) for the Flutter build and store launch plan.

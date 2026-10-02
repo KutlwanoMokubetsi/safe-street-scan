@@ -126,3 +126,20 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--i
   background: var(--ink); color: #fff; font: 600 13px var(--font-body);
   border: 3px solid rgba(255,255,255,.9); box-shadow: 0 2px 6px rgba(0,0,0,.3);
 }
+
+/* ---------- Motion & feedback ---------- */
+.btn, .chip, .fab { transition: transform .08s ease, background-color .15s ease, border-color .15s ease; }
+.btn:active:not(:disabled), .chip:active, .fab:active { transform: scale(0.97); }
+::view-transition-old(root), ::view-transition-new(root) { animation-duration: 160ms; }
+
+/* Skeleton loaders: show the shape of what's coming instead of "Loading…" */
+.sk { border-radius: 6px; background: linear-gradient(90deg, #E9EDF0 25%, #F4F6F7 50%, #E9EDF0 75%); background-size: 200% 100%; animation: sk 1.2s ease-in-out infinite; }
+@keyframes sk { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+.sk-row { padding: 14px 16px; border-bottom: 1px solid var(--line); display: grid; gap: 8px; }
+.sk-row:last-child { border-bottom: 0; }
+.sk-line { height: 12px; }
+.sk-line.w40 { width: 40%; } .sk-line.w70 { width: 70%; } .sk-line.w90 { width: 90%; }
+
+.trend-RISING { color: var(--risk); font-weight: 600; }
+.trend-FALLING { color: var(--safe); font-weight: 600; }
+.trend-STEADY { color: var(--muted); }

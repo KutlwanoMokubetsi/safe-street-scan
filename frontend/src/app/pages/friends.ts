@@ -68,7 +68,7 @@ import { ToastService } from '../core/toast.service';
               <span class="muted small">{{ data()?.friends?.length ?? 0 }}</span>
             </div>
             @if (loading()) {
-              <p class="empty">Loading…</p>
+              <div aria-busy="true" aria-label="Loading">@for (i of [1,2,3]; track i) {<div class="sk-row"><div class="sk sk-line w40"></div><div class="sk sk-line w90"></div><div class="sk sk-line w70"></div></div>}</div>
             } @else if (!data()?.friends?.length) {
               <p class="empty">No friends yet. Share your code with family or neighbours you trust.</p>
             } @else {

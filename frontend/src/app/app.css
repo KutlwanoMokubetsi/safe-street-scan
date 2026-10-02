@@ -20,8 +20,11 @@
   width: 36px; height: 36px; border-radius: 50%;
   display: grid; place-items: center;
   background: var(--ink-soft); color: #fff; text-decoration: none;
-  font: 600 0.85rem var(--font-body); border: 1px solid #3A4757;
+  font: 600 0.85rem var(--font-body); border: 1px solid #3A4757; position: relative;
 }
+.conn { position: absolute; right: -1px; bottom: -1px; width: 11px; height: 11px; border-radius: 50%; background: #8A96A3; border: 2px solid var(--ink); }
+.conn.on { background: #3DDC84; }
+.offline { background: #3A4757; color: #fff; padding: 8px 16px; font-size: 0.9rem; }
 
 /* Friend in danger: impossible to miss, on every page */
 .alert-banner {
@@ -77,9 +80,12 @@
 }
 @media (max-width: 860px) { .toasts { bottom: 76px; } }
 .toast {
+  animation: toast-in .22s cubic-bezier(.2,.8,.2,1);
   display: flex; align-items: flex-start; gap: 12px; justify-content: space-between;
   padding: 12px 14px; border-radius: var(--radius-m);
   background: var(--ink); color: #fff; border-left: 4px solid var(--safe);
 }
 .toast.error { border-left-color: var(--risk); }
 .toast button { background: none; border: 0; color: #C9D1D9; font-size: 1.2rem; line-height: 1; cursor: pointer; }
+
+@keyframes toast-in { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }

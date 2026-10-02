@@ -62,6 +62,9 @@ const CLUSTER_PX = 56;
             <span class="risk" [style.color]="risk(h.intensityScore).color">{{ risk(h.intensityScore).label }} risk</span>
           </div>
           <p class="muted">{{ h.crimeCount }} incidents in the last 30 days, mostly {{ label(h.topCrimeType).toLowerCase() }}.</p>
+          @if (h.trend === 'RISING') { <p class="trend-RISING small">▲ Rising: more incidents this week than usual</p> }
+          @if (h.trend === 'FALLING') { <p class="trend-FALLING small">▼ Falling: fewer incidents this week than usual</p> }
+          @if (h.peakHours) { <p class="small">Most incidents happen <strong>{{ h.peakHours }}</strong>.</p> }
         </div>
       }
     </div>
@@ -134,9 +137,21 @@ export class MapPage implements AfterViewInit, OnDestroy {
   readonly SEV = SEVERITY;
   readonly severities: Severity[] = ['violent', 'property', 'other'];
   readonly periods = [{ days: 7, label: '7 days' }, { days: 30, label: '30 days' }, { days: 90, label: '90 days' }];
-  readonly days = signal(30);
-  readonly verifiedOnly = signal(false);
-  readonly shown = signal(new Set<Severity>(['violent', 'property', 'other']));
+  private readonly saved = MapPage.loadFilters();
+  readonly days = signal(this.saved.days);
+  readonly verifiedOnly = signal(this.saved.verifiedOnly);
+  readonly shown = signal(new Set<Severity>(this.saved.shown));
+
+  /** Filters are remembered on this device between visits. */
+  private static loadFilters(): { days: number; verifiedOnly: boolean; shown: Severity[] } {
+    const d = { days: 30, verifiedOnly: false, shown: ['violent', 'property', 'other'] as Severity[] };
+    try { return { ...d, ...JSON.parse(localStorage.getItem('crimespot.mapFilters') ?? '{}') }; } catch { return d; }
+  }
+  private saveFilters(): void {
+    try {
+      localStorage.setItem('crimespot.mapFilters', JSON.stringify({ days: this.days(), verifiedOnly: this.verifiedOnly(), shown: [...this.shown()] }));
+    } catch { /* ignore */ }
+  }
   readonly loading = signal(false);
   readonly count = signal(0);
   readonly hotspots = signal<Hotspot[]>([]);
@@ -187,10 +202,11 @@ export class MapPage implements AfterViewInit, OnDestroy {
 
   ngOnDestroy(): void { this.sub?.unsubscribe(); this.map?.remove(); }
 
-  setDays(d: number): void { this.days.set(d); this.moves.next(); }
-  toggleVerified(): void { this.verifiedOnly.update(v => !v); this.moves.next(); }
+  setDays(d: number): void { this.days.set(d); this.saveFilters(); this.moves.next(); }
+  toggleVerified(): void { this.verifiedOnly.update(v => !v); this.saveFilters(); this.moves.next(); }
   toggleSeverity(s: Severity): void {
     this.shown.update(set => { const n = new Set(set); n.has(s) ? n.delete(s) : n.add(s); return n.size ? n : set; });
+    this.saveFilters();
     this.draw();
   }
 

@@ -51,18 +51,29 @@ public class RealtimeHub extends TextWebSocketHandler {
     private final JwtDecoder jwtDecoder;
     private final UserProvisioningService provisioning;
     private final ObjectMapper json;
+    private final za.co.crimespot.common.ReadCache cache;
 
-    public RealtimeHub(JwtDecoder jwtDecoder, UserProvisioningService provisioning, ObjectMapper json) {
+    public RealtimeHub(JwtDecoder jwtDecoder, UserProvisioningService provisioning, ObjectMapper json,
+                       za.co.crimespot.common.ReadCache cache) {
         this.jwtDecoder = jwtDecoder;
         this.provisioning = provisioning;
         this.json = json;
+        this.cache = cache;
     }
 
     // ---------- publishing (called from services) ----------
 
     public void toUsers(Collection<UUID> users, String type) { afterCommit(() -> sendTo(users, msg(type, null))); }
 
-    public void toAll(String type) { afterCommit(() -> conns.values().forEach(c -> { if (c.userId != null) send(c, msg(type, null)); })); }
+    public void toAll(String type) {
+        afterCommit(() -> {
+            cache.invalidate(type);
+            String m = msg(type, null);
+            conns.values().forEach(c -> { if (c.userId != null) send(c, m); });
+        });
+    }
+
+    public int connectedCount() { return (int) conns.values().stream().filter(c -> c.userId != null).count(); }
 
     public void notice(Collection<UUID> users, String text) { afterCommit(() -> sendTo(users, msg("notice", text))); }
 

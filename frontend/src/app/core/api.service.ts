@@ -1,7 +1,7 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { environment } from '../../environments/environment';
-import { Alert, Bounds, FriendsOverview, Hotspot, Live, NewReport, Report, ReportStatus, Role, Share, Stats, User } from './models';
+import { Alert, Bounds, News, FriendsOverview, Hotspot, Live, NewReport, Report, ReportStatus, Role, Share, Stats, User } from './models';
 
 @Injectable({ providedIn: 'root' })
 export class ApiService {
@@ -62,6 +62,12 @@ export class ApiService {
   }
   resolvePanic(id: string) { return this.http.post<Alert>(`${this.base}/panic/${id}/resolve`, {}); }
   alert(id: string) { return this.http.get<Alert>(`${this.base}/panic/${id}`); }
+
+  // ---- Local news ----
+  news(pos: [number, number] | null) {
+    const params: Record<string, number> = pos ? { lat: +pos[0].toFixed(3), lng: +pos[1].toFixed(3) } : {};
+    return this.http.get<News>(`${this.base}/news`, { params });
+  }
 
   // ---- Push ----
   pushKey() { return this.http.get<{ enabled: boolean; publicKey: string }>(`${this.base}/push/public-key`); }

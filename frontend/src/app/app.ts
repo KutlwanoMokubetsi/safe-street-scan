@@ -1,4 +1,4 @@
-import { Component, OnInit, computed, inject } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { ApiService } from './core/api.service';
 import { AuthService } from './core/auth.service';
@@ -19,7 +19,8 @@ export class App implements OnInit {
   protected live = inject(LiveService);
   protected toast = inject(ToastService);
   private push = inject(PushService);
-  private realtime = inject(RealtimeService);
+  protected realtime = inject(RealtimeService);
+  protected readonly online = signal(navigator.onLine);
   private api = inject(ApiService);
   private router = inject(Router);
 
@@ -47,6 +48,10 @@ export class App implements OnInit {
   });
 
   ngOnInit(): void {
+    window.addEventListener('online', () => this.online.set(true));
+    window.addEventListener('offline', () => this.online.set(false));
+    // Re-render once a minute so relative times ("2 min ago") stay accurate.
+    setInterval(() => this.online.set(navigator.onLine), 60_000);
     if (!this.auth.isLoggedIn()) return;
     this.auth.ensureUser();
     this.realtime.start();

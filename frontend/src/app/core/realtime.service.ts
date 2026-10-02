@@ -59,9 +59,15 @@ export class RealtimeService {
           // Catch up on anything missed while disconnected.
           (['live', 'reports', 'hotspots', 'friends'] as RealtimeEvent[]).forEach(t => this.events$.next(t));
           break;
-        case 'live': case 'reports': case 'hotspots': case 'friends':
+        case 'live': case 'friends':
           this.events$.next(msg.type);
           break;
+        case 'reports': case 'hotspots': {
+          // Sent to everyone at once: add 0–1.5 s of jitter so re-fetches are spread out.
+          const t = msg.type;
+          setTimeout(() => this.events$.next(t), Math.random() * 1500);
+          break;
+        }
         case 'notice':
           if (msg.text) this.toast.ok(msg.text);
           break;

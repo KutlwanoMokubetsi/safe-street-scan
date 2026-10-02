@@ -25,18 +25,21 @@ public class HotspotService {
     private final HotspotProperties props;
     private final TransactionTemplate tx;
     private final za.co.crimespot.realtime.RealtimeHub hub;
+    private final za.co.crimespot.common.ReadCache cache;
 
     public HotspotService(CrimeReportRepository reports, CrimeHotspotRepository hotspots,
-                          HotspotProperties props, TransactionTemplate tx, za.co.crimespot.realtime.RealtimeHub hub) {
+                          HotspotProperties props, TransactionTemplate tx, za.co.crimespot.realtime.RealtimeHub hub,
+                          za.co.crimespot.common.ReadCache cache) {
         this.reports = reports;
         this.hotspots = hotspots;
         this.props = props;
         this.tx = tx;
         this.hub = hub;
+        this.cache = cache;
     }
 
     public List<CrimeHotspot> active() {
-        return hotspots.findByValidUntilAfterOrderByIntensityScoreDesc(Instant.now());
+        return cache.get("hotspots", "hotspots", () -> hotspots.findByValidUntilAfterOrderByIntensityScoreDesc(Instant.now()));
     }
 
     @EventListener(ApplicationReadyEvent.class)
@@ -48,9 +51,16 @@ public class HotspotService {
     /** Rebuilds all hotspots from the last N days of non-rejected reports. */
     // TransactionTemplate rather than @Transactional, because this is also called
     // from inside the class (startup, schedule), which would bypass Spring's proxy.
-    public synchronized int regenerate() {
-        Integer count = tx.execute(status -> doRegenerate());
-        return count == null ? 0 : count;
+    private final java.util.concurrent.locks.ReentrantLock regenLock = new java.util.concurrent.locks.ReentrantLock();
+
+    public int regenerate() {
+        regenLock.lock(); // not synchronized: avoids pinning a virtual thread during the database work
+        try {
+            Integer count = tx.execute(status -> doRegenerate());
+            return count == null ? 0 : count;
+        } finally {
+            regenLock.unlock();
+        }
     }
 
     private int doRegenerate() {
@@ -59,7 +69,7 @@ public class HotspotService {
                 now.minus(Duration.ofDays(props.lookbackDays())),
                 EnumSet.of(ReportStatus.PENDING, ReportStatus.VERIFIED));
 
-        var detected = HotspotDetector.detect(recent, props.cellSizeDegrees(), props.minReports(), now);
+        var detected = HotspotDetector.detect(recent, props.epsMeters(), props.minReports(), now);
 
         hotspots.deleteAllHotspots();
         Instant validUntil = now.plus(Duration.ofHours(props.validHours()));
@@ -72,12 +82,15 @@ public class HotspotService {
             h.setIntensityScore(d.intensity());
             h.setCrimeCount(d.count());
             h.setTopCrimeType(d.topType());
+            h.setPeakHours(d.peakHours());
+            h.setTrend(d.trend().name());
             h.setGeneratedAt(now);
             h.setValidUntil(validUntil);
             return h;
         }).toList());
 
         hub.toAll("hotspots");
+        cache.invalidate("reports"); // stats include the hotspot count
         log.info("Hotspots regenerated: {} from {} reports", detected.size(), recent.size());
         return detected.size();
     }

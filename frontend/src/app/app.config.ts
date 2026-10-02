@@ -2,7 +2,7 @@ import {
   ApplicationConfig, isDevMode, provideAppInitializer, provideBrowserGlobalErrorListeners, provideZoneChangeDetection,
 } from '@angular/core';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
-import { provideRouter, withComponentInputBinding } from '@angular/router';
+import { PreloadAllModules, provideRouter, withComponentInputBinding, withInMemoryScrolling, withPreloading, withViewTransitions } from '@angular/router';
 import { provideServiceWorker } from '@angular/service-worker';
 
 import { routes } from './app.routes';
@@ -15,7 +15,11 @@ export const appConfig: ApplicationConfig = {
     provideZoneChangeDetection({ eventCoalescing: true }),
     // Keycloak must finish before routing so guards know whether you're signed in.
     provideAppInitializer(() => initKeycloak()),
-    provideRouter(routes, withComponentInputBinding()),
+    provideRouter(routes,
+      withComponentInputBinding(),
+      withViewTransitions({ skipInitialTransition: true }),       // smooth cross-fade between pages
+      withPreloading(PreloadAllModules),                            // other pages load in the background, so taps are instant
+      withInMemoryScrolling({ scrollPositionRestoration: 'top' })),
     provideHttpClient(withInterceptors([authInterceptor])),
     provideServiceWorker('ngsw-worker.js', {
       enabled: !isDevMode(),

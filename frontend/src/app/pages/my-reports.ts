@@ -22,7 +22,7 @@ import { ToastService } from '../core/toast.service';
 
       <section class="panel">
         @if (loading()) {
-          <p class="empty">Loading your reports…</p>
+          <div aria-busy="true" aria-label="Loading">@for (i of [1,2,3]; track i) {<div class="sk-row"><div class="sk sk-line w40"></div><div class="sk sk-line w90"></div><div class="sk sk-line w70"></div></div>}</div>
         } @else if (reports().length === 0) {
           <div class="empty">
             <p>You haven't reported anything yet.</p>
