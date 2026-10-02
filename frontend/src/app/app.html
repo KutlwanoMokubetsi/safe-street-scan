@@ -1,0 +1,45 @@
+@if (auth.isLoggedIn()) {
+  <header class="bar">
+    <a routerLink="/" class="brand" aria-label="CrimeSpot home">
+      <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true">
+        <path d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7z" fill="#F5C518"/>
+        <circle cx="12" cy="9" r="2.6" fill="#17202B"/>
+      </svg>
+      <span>CrimeSpot</span>
+    </a>
+
+    <nav class="nav" aria-label="Main">
+      <a routerLink="/" routerLinkActive="on" [routerLinkActiveOptions]="{ exact: true }">Overview</a>
+      <a routerLink="/map" routerLinkActive="on">Map</a>
+      <a routerLink="/my-reports" routerLinkActive="on">My reports</a>
+      @if (auth.canModerate()) {
+        <a routerLink="/moderate" routerLinkActive="on">Review</a>
+      }
+    </nav>
+
+    <div class="right">
+      <a routerLink="/report" class="btn btn-vest report-btn">Report incident</a>
+      <button class="signout" type="button" (click)="auth.logout()">Sign out</button>
+    </div>
+  </header>
+}
+
+<main>
+  <router-outlet />
+</main>
+
+@if (auth.isLoggedIn()) {
+  <a routerLink="/report" class="report-bar" aria-label="Report an incident">
+    <span class="stripe" aria-hidden="true"></span>
+    Report incident
+  </a>
+}
+
+<div class="toasts" aria-live="polite">
+  @for (t of toast.toasts(); track t.id) {
+    <div class="toast" [class.error]="t.kind === 'error'" role="status">
+      <span>{{ t.text }}</span>
+      <button type="button" (click)="toast.dismiss(t.id)" aria-label="Dismiss">×</button>
+    </div>
+  }
+</div>

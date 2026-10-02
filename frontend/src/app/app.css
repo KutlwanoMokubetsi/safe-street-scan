@@ -1,0 +1,52 @@
+.bar {
+  position: sticky; top: 0; z-index: 1000;
+  display: flex; align-items: center; gap: 24px;
+  height: 60px; padding: 0 16px;
+  background: var(--ink); color: #fff;
+}
+.brand { display: flex; align-items: center; gap: 8px; text-decoration: none; font: 700 1.3rem var(--font-head); }
+.nav { display: flex; gap: 4px; height: 100%; }
+.nav a {
+  display: flex; align-items: center; padding: 0 12px;
+  color: #C9D1D9; text-decoration: none; font-weight: 500;
+  border-bottom: 3px solid transparent;
+}
+.nav a:hover { color: #fff; }
+.nav a.on { color: #fff; border-bottom-color: var(--vest); }
+.right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+.signout { background: none; border: 0; color: #C9D1D9; font: inherit; cursor: pointer; padding: 8px; }
+.signout:hover { color: #fff; }
+
+/* Mobile: nav becomes a scrolling strip, report becomes a hi-vis bar at the bottom */
+.report-bar { display: none; }
+
+@media (max-width: 760px) {
+  .bar { flex-wrap: wrap; height: auto; padding: 10px 12px 0; gap: 8px; }
+  .nav { order: 3; width: 100%; overflow-x: auto; height: 44px; }
+  .report-btn { display: none; }
+  .report-bar {
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 1000;
+    height: 60px; padding-bottom: env(safe-area-inset-bottom, 0);
+    background: var(--vest); color: var(--ink);
+    font: 700 1.15rem var(--font-head); text-decoration: none;
+    border-top: 2px solid var(--vest-deep);
+  }
+  .stripe {
+    width: 28px; height: 14px;
+    background: repeating-linear-gradient(-45deg, var(--ink) 0 4px, transparent 4px 8px);
+  }
+}
+
+.toasts {
+  position: fixed; z-index: 2000; right: 16px; bottom: 16px;
+  display: flex; flex-direction: column; gap: 8px; max-width: min(380px, calc(100vw - 32px));
+}
+@media (max-width: 760px) { .toasts { bottom: 76px; } }
+.toast {
+  display: flex; align-items: flex-start; gap: 12px; justify-content: space-between;
+  padding: 12px 14px; border-radius: var(--radius-m);
+  background: var(--ink); color: #fff; border-left: 4px solid var(--safe);
+}
+.toast.error { border-left-color: var(--risk); }
+.toast button { background: none; border: 0; color: #C9D1D9; font-size: 1.2rem; line-height: 1; cursor: pointer; }

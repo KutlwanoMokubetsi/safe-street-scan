@@ -1,0 +1,113 @@
+:root {
+  --ink: #17202B;
+  --ink-soft: #2A3542;
+  --vest: #F5C518;
+  --vest-deep: #D9AA00;
+  --surface: #F3F5F6;
+  --card: #FFFFFF;
+  --line: #D8DDE1;
+  --muted: #5E6873;
+  --risk: #C0392B;
+  --safe: #2E7D5B;
+  --amber: #D9822B;
+
+  --font-body: 'Barlow', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-head: 'Barlow Semi Condensed', 'Barlow', 'Arial Narrow', system-ui, sans-serif;
+
+  --radius-s: 4px;
+  --radius-m: 8px;
+  --gap: 16px;
+}
+
+* { box-sizing: border-box; }
+
+html, body { margin: 0; height: 100%; }
+
+body {
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--ink);
+  background: var(--surface);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3 {
+  font-family: var(--font-head);
+  font-weight: 700;
+  line-height: 1.15;
+  margin: 0;
+  letter-spacing: 0.005em;
+}
+h1 { font-size: 1.9rem; }
+h2 { font-size: 1.3rem; }
+h3 { font-size: 1.05rem; font-weight: 600; }
+
+p { margin: 0; }
+a { color: inherit; }
+
+:focus-visible { outline: 3px solid var(--vest); outline-offset: 2px; }
+
+.page { max-width: 1100px; margin: 0 auto; padding: 24px 16px 96px; }
+.page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+.muted { color: var(--muted); }
+.small { font-size: 0.875rem; }
+
+/* Buttons */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  font: 600 0.95rem var(--font-body);
+  padding: 10px 16px; min-height: 44px;
+  border-radius: var(--radius-s);
+  border: 1px solid var(--line);
+  background: var(--card); color: var(--ink);
+  cursor: pointer; text-decoration: none;
+}
+.btn:hover { border-color: var(--ink-soft); }
+.btn:disabled { opacity: 0.55; cursor: not-allowed; }
+.btn-ink { background: var(--ink); color: #fff; border-color: var(--ink); }
+.btn-ink:hover { background: var(--ink-soft); }
+.btn-vest { background: var(--vest); color: var(--ink); border-color: var(--vest-deep); }
+.btn-vest:hover { background: var(--vest-deep); border-color: var(--vest-deep); }
+.btn-danger { color: var(--risk); }
+.btn-ok { color: var(--safe); }
+.btn-sm { min-height: 36px; padding: 6px 12px; font-size: 0.875rem; }
+
+/* Forms */
+.field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+.field label { font-weight: 600; font-size: 0.9rem; }
+.field .hint { font-size: 0.8rem; color: var(--muted); }
+.field .err { font-size: 0.8rem; color: var(--risk); }
+input, select, textarea {
+  font: inherit; color: inherit;
+  padding: 10px 12px; min-height: 44px;
+  border: 1px solid var(--line); border-radius: var(--radius-s);
+  background: #fff; width: 100%;
+}
+textarea { resize: vertical; min-height: 110px; }
+input:focus, select:focus, textarea:focus { outline: none; border-color: var(--ink); box-shadow: 0 0 0 3px rgba(245, 197, 24, 0.45); }
+
+/* Panels */
+.panel { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius-m); }
+.panel-head { padding: 14px 16px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.panel-body { padding: 16px; }
+
+/* Crime type tag: colored dot + label, not a pill */
+.type-tag { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; font-size: 0.9rem; }
+.type-tag::before { content: ''; width: 10px; height: 10px; border-radius: 2px; background: var(--c, var(--muted)); }
+
+.status { font-size: 0.8rem; font-weight: 600; }
+.status-VERIFIED { color: var(--safe); }
+.status-PENDING { color: var(--amber); }
+.status-REJECTED { color: var(--risk); }
+
+.empty { padding: 32px 16px; text-align: center; color: var(--muted); }
+.empty .btn { margin-top: 12px; }
+
+/* Leaflet sits under the sticky header */
+.leaflet-container { font-family: var(--font-body); z-index: 0; }
+.leaflet-popup-content { margin: 12px 14px; line-height: 1.4; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}
