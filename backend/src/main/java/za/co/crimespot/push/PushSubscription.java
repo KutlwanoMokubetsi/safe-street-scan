@@ -1,6 +1,7 @@
 package za.co.crimespot.push;
 
 import jakarta.persistence.*;
+import za.co.crimespot.security.EncryptedStringConverter;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -18,10 +19,12 @@ public class PushSubscription {
     @Column(nullable = false, columnDefinition = "text")
     private String endpoint;
 
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "text")
+    @Convert(converter = EncryptedStringConverter.class)
     private String p256dh;
 
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "text")
+    @Convert(converter = EncryptedStringConverter.class)
     private String auth;
 
     @Column(name = "created_at", nullable = false, updatable = false)

@@ -2,6 +2,8 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { ApiService } from '../core/api.service';
+import { RealtimeService } from '../core/realtime.service';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AuthService } from '../core/auth.service';
 import { crimeColor, crimeLabel, riskLevel, timeAgo } from '../core/crime-types';
 import { Hotspot, Report, Stats } from '../core/models';
@@ -124,6 +126,7 @@ import { errorMessage } from '../core/auth.interceptor';
 })
 export class Dashboard implements OnInit {
   private api = inject(ApiService);
+  private rt = inject(RealtimeService).on('reports', 'hotspots').pipe(takeUntilDestroyed());
   private auth = inject(AuthService);
 
   readonly stats = signal<Stats | null>(null);
@@ -142,10 +145,14 @@ export class Dashboard implements OnInit {
     return this.auth.firstName() || 'there';
   }
 
-  ngOnInit(): void { this.load(); }
+  ngOnInit(): void {
+    this.load();
+    this.rt.subscribe(() => this.load(true));
+  }
 
-  load(): void {
-    this.loading.set(true);
+  /** quiet: refresh in place without showing loading states (used for live updates). */
+  load(quiet = false): void {
+    if (!quiet) this.loading.set(true);
     this.error.set('');
     forkJoin({ stats: this.api.stats(), reports: this.api.recentReports(8), hotspots: this.api.hotspots() })
       .subscribe({

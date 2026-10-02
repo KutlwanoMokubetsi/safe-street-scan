@@ -2,6 +2,7 @@ import { Injectable, NgZone, computed, effect, inject, signal } from '@angular/c
 import { Subscription, timer } from 'rxjs';
 import { ApiService } from './api.service';
 import { AuthService } from './auth.service';
+import { RealtimeService } from './realtime.service';
 import { Live } from './models';
 
 const POLL_MS = 15_000;
@@ -25,6 +26,8 @@ export class LiveService {
   private api = inject(ApiService);
   private auth = inject(AuthService);
   private zone = inject(NgZone);
+  private realtime = inject(RealtimeService);
+  private lastRefresh = 0;
 
   readonly state = signal<Live | null>(null);
   readonly lastSentAt = signal<Date | null>(null);
@@ -47,15 +50,20 @@ export class LiveService {
 
   start(): void {
     if (this.poll || !this.auth.isLoggedIn()) return;
+    // With a live socket, events drive refreshes and polling drops to once a minute as a safety net.
     this.poll = timer(0, POLL_MS).subscribe(() => {
-      if (document.visibilityState === 'visible') this.refresh();
+      if (document.visibilityState !== 'visible') return;
+      if (this.realtime.connected() && Date.now() - this.lastRefresh < 60_000) return;
+      this.refresh();
     });
+    this.realtime.on('live', 'friends').subscribe(() => this.refresh());
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible') this.refresh();
     });
   }
 
   refresh(): void {
+    this.lastRefresh = Date.now();
     this.api.live().subscribe({ next: s => this.state.set(s), error: () => { /* keep last state */ } });
   }
 

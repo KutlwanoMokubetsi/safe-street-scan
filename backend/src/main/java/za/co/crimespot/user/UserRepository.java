@@ -9,4 +9,5 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     Optional<User> findByEmailIgnoreCase(String email);
     Optional<User> findByFriendCode(String friendCode);
     boolean existsByFriendCode(String friendCode);
+    java.util.List<User> findByAlertRadiusMGreaterThan(int radius);
 }

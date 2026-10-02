@@ -23,6 +23,16 @@ public interface LocationShareRepository extends JpaRepository<LocationShare, UU
            """)
     List<LocationShare> visibleTo(@Param("viewer") UUID viewer, @Param("now") Instant now);
 
+    @Query("""
+           select s from LocationShare s
+           where s.checkinDueAt is not null and s.checkinDueAt <= :now
+             and s.escalatedAt is null and s.endedAt is null
+           """)
+    List<LocationShare> overdueCheckins(@Param("now") Instant now);
+
+    @Query("select s from LocationShare s where s.endedAt is null and s.expiresAt is not null and s.expiresAt <= :now")
+    List<LocationShare> expiring(@Param("now") Instant now);
+
     @Modifying
     @Query("update LocationShare s set s.endedAt = :now where s.endedAt is null and s.expiresAt is not null and s.expiresAt <= :now")
     int endExpired(@Param("now") Instant now);

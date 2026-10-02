@@ -31,6 +31,13 @@ public class LocationShare {
     @Column(name = "ended_at")
     private Instant endedAt;
 
+    /** If set, friends are alerted automatically when this passes without a check-in. */
+    @Column(name = "checkin_due_at")
+    private Instant checkinDueAt;
+
+    @Column(name = "escalated_at")
+    private Instant escalatedAt;
+
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "location_share_viewers", joinColumns = @JoinColumn(name = "share_id"))
     @Column(name = "viewer_id")
@@ -47,6 +54,10 @@ public class LocationShare {
     public void setExpiresAt(Instant v) { this.expiresAt = v; }
     public Instant getEndedAt() { return endedAt; }
     public void setEndedAt(Instant v) { this.endedAt = v; }
+    public Instant getCheckinDueAt() { return checkinDueAt; }
+    public void setCheckinDueAt(Instant v) { this.checkinDueAt = v; }
+    public Instant getEscalatedAt() { return escalatedAt; }
+    public void setEscalatedAt(Instant v) { this.escalatedAt = v; }
     public Set<UUID> getViewers() { return viewers; }
     public void setViewers(Set<UUID> v) { this.viewers = v; }
 }

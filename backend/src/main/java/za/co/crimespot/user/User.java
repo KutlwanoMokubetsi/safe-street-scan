@@ -1,6 +1,7 @@
 package za.co.crimespot.user;
 
 import jakarta.persistence.*;
+import za.co.crimespot.security.EncryptedStringConverter;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -19,10 +20,24 @@ public class User {
     @Column(nullable = false, unique = true)
     private String email;
 
-    @Column(name = "full_name")
+    @Column(name = "full_name", columnDefinition = "text")
+    @Convert(converter = EncryptedStringConverter.class)
     private String fullName;
 
+    @Column(columnDefinition = "text")
+    @Convert(converter = EncryptedStringConverter.class)
     private String phone;
+
+    @Column(name = "home_lat", columnDefinition = "text")
+    @Convert(converter = za.co.crimespot.security.EncryptedDoubleConverter.class)
+    private Double homeLat;
+
+    @Column(name = "home_lng", columnDefinition = "text")
+    @Convert(converter = za.co.crimespot.security.EncryptedDoubleConverter.class)
+    private Double homeLng;
+
+    @Column(name = "alert_radius_m", nullable = false)
+    private int alertRadiusM = 0;
 
     @Column(name = "friend_code", nullable = false, unique = true)
     private String friendCode;
@@ -54,6 +69,12 @@ public class User {
     public void setPhone(String phone) { this.phone = phone; }
     public String getFriendCode() { return friendCode; }
     public void setFriendCode(String friendCode) { this.friendCode = friendCode; }
+    public Double getHomeLat() { return homeLat; }
+    public void setHomeLat(Double v) { this.homeLat = v; }
+    public Double getHomeLng() { return homeLng; }
+    public void setHomeLng(Double v) { this.homeLng = v; }
+    public int getAlertRadiusM() { return alertRadiusM; }
+    public void setAlertRadiusM(int v) { this.alertRadiusM = v; }
     public Role getRole() { return role; }
     public void setRole(Role role) { this.role = role; }
     public Instant getCreatedAt() { return createdAt; }

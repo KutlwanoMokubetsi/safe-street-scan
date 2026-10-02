@@ -39,6 +39,8 @@
       <span class="txt">{{ shareText() }}</span>
       @if (live.myAlert()) {
         <button type="button" (click)="openMyAlert()">View</button>
+      } @else if (live.state()?.myShare?.checkinDueAt) {
+        <button type="button" class="arrived" (click)="checkIn()">I've arrived</button>
       } @else {
         <button type="button" (click)="stopSharing()">Stop</button>
       }

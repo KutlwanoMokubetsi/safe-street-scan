@@ -23,14 +23,38 @@ public class PanicService {
     private final FriendshipRepository friendships;
     private final UserRepository users;
     private final NotificationService notifications;
+    private final za.co.crimespot.realtime.RealtimeHub hub;
+    private final za.co.crimespot.location.LocationShareRepository shares;
 
     public PanicService(PanicAlertRepository alerts, LocationService locations, FriendshipRepository friendships,
-                        UserRepository users, NotificationService notifications) {
+                        UserRepository users, NotificationService notifications,
+                        za.co.crimespot.realtime.RealtimeHub hub, za.co.crimespot.location.LocationShareRepository shares) {
         this.alerts = alerts;
         this.locations = locations;
         this.friendships = friendships;
         this.users = users;
         this.notifications = notifications;
+        this.hub = hub;
+        this.shares = shares;
+    }
+
+    private static final java.time.format.DateTimeFormatter HHMM =
+            java.time.format.DateTimeFormatter.ofPattern("HH:mm").withZone(java.time.ZoneId.of("Africa/Johannesburg"));
+
+    /** Someone set "check in by" and didn't: raise an alert for them automatically. */
+    @org.springframework.scheduling.annotation.Scheduled(fixedDelay = 30_000)
+    @Transactional
+    public void escalateMissedCheckins() {
+        Instant now = Instant.now();
+        for (za.co.crimespot.location.LocationShare s : shares.overdueCheckins(now)) {
+            s.setEscalatedAt(now);
+            shares.save(s);
+            var loc = locations.location(s.getUserId()).orElse(null);
+            trigger(s.getUserId(),
+                    loc == null ? null : loc.getLatitude(), loc == null ? null : loc.getLongitude(),
+                    loc == null ? null : loc.getAccuracyM(),
+                    "Didn't check in by " + HHMM.format(s.getCheckinDueAt()) + ". Sent automatically, so please try to reach them.");
+        }
     }
 
     /** Raises an alert, or refreshes the position of one that is already active. Never rate-limited. */
@@ -58,6 +82,9 @@ public class PanicService {
         String name = users.findById(me).map(User::displayName).orElse("A friend");
         String body = a.getMessage() != null ? a.getMessage() : "Tap to see where they are and call them.";
         notifications.sendToAll(friends, "🚨 " + name + " needs help", body, "/alerts/" + a.getId(), true);
+        List<UUID> to = new ArrayList<>(friends);
+        to.add(me);
+        hub.toUsers(to, "live");
         return a;
     }
 
@@ -75,6 +102,10 @@ public class PanicService {
         String name = users.findById(me).map(User::displayName).orElse("Your friend");
         notifications.sendToAll(friendships.friendIdsOf(me), name + " is safe",
                 name + " ended their emergency alert.", "/alerts/" + a.getId(), false);
+        List<UUID> to = new ArrayList<>(friendships.friendIdsOf(me));
+        to.add(me);
+        hub.toUsers(to, "live");
+        hub.notice(friendships.friendIdsOf(me), name + " is safe");
         return a;
     }
 

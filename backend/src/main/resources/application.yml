@@ -1,5 +1,10 @@
 server:
   port: ${PORT:8080}
+  # Trust Render's proxy headers so the app knows requests are HTTPS (needed for HSTS) and sees real client IPs.
+  forward-headers-strategy: native
+  error:
+    include-stacktrace: never
+    include-message: never
 
 spring:
   application:
@@ -18,6 +23,10 @@ spring:
     enabled: true
 
 app:
+  crypto:
+    # 32-byte AES key, base64. Generate with: openssl rand -base64 32
+    # Keep a safe copy: if it's lost, encrypted fields can't be read.
+    key: ${DATA_ENCRYPTION_KEY:}
   auth:
     # Keycloak realm URL, exactly as it appears in the token's "iss" claim.
     issuer: ${KEYCLOAK_ISSUER:http://localhost:8180/realms/crimespot}

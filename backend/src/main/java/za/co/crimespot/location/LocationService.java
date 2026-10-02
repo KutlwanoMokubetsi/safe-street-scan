@@ -24,15 +24,25 @@ public class LocationService {
     private final FriendshipRepository friendships;
     private final UserRepository users;
     private final NotificationService notifications;
+    private final za.co.crimespot.realtime.RealtimeHub hub;
 
     public LocationService(LocationShareRepository shares, UserLocationRepository locations,
                            FriendshipRepository friendships, UserRepository users,
-                           NotificationService notifications) {
+                           NotificationService notifications, za.co.crimespot.realtime.RealtimeHub hub) {
         this.shares = shares;
         this.locations = locations;
         this.friendships = friendships;
         this.users = users;
         this.notifications = notifications;
+        this.hub = hub;
+    }
+
+    /** Everyone currently allowed to see this user, plus the user's own devices. */
+    private Set<UUID> audience(UUID me) {
+        Set<UUID> to = new HashSet<>();
+        to.add(me);
+        shares.active(me, Instant.now()).forEach(s -> to.addAll(s.getViewers()));
+        return to;
     }
 
     /**
@@ -40,9 +50,15 @@ public class LocationService {
      * {@code minutes} is 60, 480, or null for "until I stop". Replaces any earlier manual share.
      */
     @Transactional
-    public LocationShare startManual(UUID me, Integer minutes, Collection<UUID> friendIds) {
+    public LocationShare startManual(UUID me, Integer minutes, Collection<UUID> friendIds, Integer checkInMinutes) {
         if (minutes != null && !ALLOWED_MINUTES.contains(minutes)) {
             throw new BadRequestException("Choose 1 hour, 8 hours, or until you stop");
+        }
+        if (checkInMinutes != null && (checkInMinutes < 10 || checkInMinutes > 720)) {
+            throw new BadRequestException("Choose a check-in time between 10 minutes and 12 hours");
+        }
+        if (checkInMinutes != null && minutes != null && checkInMinutes > minutes) {
+            throw new BadRequestException("Check-in must be before sharing ends");
         }
         Set<UUID> friends = new HashSet<>(friendships.friendIdsOf(me));
         if (friends.isEmpty()) throw new BadRequestException("Add a friend first, then you can share your location with them.");
@@ -53,8 +69,15 @@ public class LocationService {
 
         Instant now = Instant.now();
         endActive(me, ShareReason.MANUAL, now);
+        Set<UUID> previous = audience(me);
         LocationShare s = newShare(me, ShareReason.MANUAL, viewers, now,
                 minutes == null ? null : now.plus(Duration.ofMinutes(minutes)));
+        if (checkInMinutes != null) {
+            s.setCheckinDueAt(now.plus(Duration.ofMinutes(checkInMinutes)));
+            s = shares.save(s);
+        }
+        previous.addAll(viewers);
+        hub.toUsers(previous, "live");
 
         String name = users.findById(me).map(User::displayName).orElse("A friend");
         String until = minutes == null ? "until they stop" : "for the next " + (minutes == 60 ? "hour" : "8 hours");
@@ -67,13 +90,31 @@ public class LocationService {
     public LocationShare startPanicShare(UUID me) {
         Instant now = Instant.now();
         endActive(me, ShareReason.PANIC, now);
-        return newShare(me, ShareReason.PANIC, new HashSet<>(friendships.friendIdsOf(me)), now, null);
+        LocationShare s = newShare(me, ShareReason.PANIC, new HashSet<>(friendships.friendIdsOf(me)), now, null);
+        hub.toUsers(audience(me), "live");
+        return s;
+    }
+
+    /** "I've arrived": ends the manual share and tells the friends who were watching. */
+    @Transactional
+    public void checkIn(UUID me) {
+        LocationShare s = active(me, ShareReason.MANUAL)
+                .orElseThrow(() -> new ConflictException("You're not sharing your location"));
+        Set<UUID> viewers = new HashSet<>(s.getViewers());
+        Set<UUID> to = audience(me);
+        stop(me, ShareReason.MANUAL);
+        String name = users.findById(me).map(User::displayName).orElse("Your friend");
+        notifications.sendToAll(viewers, name + " checked in safely", name + " has arrived and stopped sharing.", "/live", false);
+        hub.notice(viewers, name + " checked in safely");
+        hub.toUsers(to, "live");
     }
 
     @Transactional
     public void stop(UUID me, ShareReason reason) {
+        Set<UUID> to = audience(me);
         endActive(me, reason, Instant.now());
         locations.deleteWhereNotSharing();
+        hub.toUsers(to, "live");
     }
 
     @Transactional
@@ -92,6 +133,7 @@ public class LocationService {
         loc.setAccuracyM(accuracy);
         loc.setUpdatedAt(Instant.now());
         locations.save(loc);
+        hub.toUsers(audience(me), "live");
     }
 
     public Optional<LocationShare> active(UUID me, ShareReason reason) {
@@ -120,13 +162,19 @@ public class LocationService {
     @Transactional
     public void removeViewer(UUID owner, UUID viewer) {
         shares.removeViewer(owner, viewer);
+        hub.toUsers(List.of(owner, viewer), "live");
     }
 
     @Scheduled(fixedDelay = 60_000)
     @Transactional
     public void expire() {
-        shares.endExpired(Instant.now());
+        Instant now = Instant.now();
+        Set<UUID> to = new HashSet<>();
+        for (LocationShare s : shares.expiring(now)) { to.add(s.getUserId()); to.addAll(s.getViewers()); }
+        if (to.isEmpty()) return;
+        shares.endExpired(now);
         locations.deleteWhereNotSharing();
+        hub.toUsers(to, "live");
     }
 
     private void endActive(UUID me, ShareReason reason, Instant now) {

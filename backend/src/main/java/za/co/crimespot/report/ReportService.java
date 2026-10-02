@@ -23,8 +23,14 @@ public class ReportService {
     private static final int MAX_AREA_RESULTS = 500;
 
     private final CrimeReportRepository reports;
+    private final za.co.crimespot.realtime.RealtimeHub hub;
+    private final AreaAlertService areaAlerts;
 
-    public ReportService(CrimeReportRepository reports) { this.reports = reports; }
+    public ReportService(CrimeReportRepository reports, za.co.crimespot.realtime.RealtimeHub hub, AreaAlertService areaAlerts) {
+        this.reports = reports;
+        this.hub = hub;
+        this.areaAlerts = areaAlerts;
+    }
 
     public record CreateCommand(CrimeType crimeType, String description, String locationName,
                                 double latitude, double longitude, Instant occurredAt) {}
@@ -55,7 +61,10 @@ public class ReportService {
             r.setReviewedBy(me.id());
             r.setReviewedAt(now);
         }
-        return reports.save(r);
+        CrimeReport saved = reports.save(r);
+        hub.toAll("reports");
+        if (saved.getStatus() == ReportStatus.VERIFIED) afterCommit(() -> areaAlerts.notifyNearby(saved.getId()));
+        return saved;
     }
 
     public List<CrimeReport> inArea(double minLat, double maxLat, double minLng, double maxLng,
@@ -82,10 +91,14 @@ public class ReportService {
     public CrimeReport review(AuthUser me, UUID id, ReportStatus status) {
         if (status == ReportStatus.PENDING) throw new BadRequestException("Choose verify or reject");
         CrimeReport r = reports.findById(id).orElseThrow(() -> new NotFoundException("Report not found"));
-        r.setStatus(status);
         r.setReviewedBy(me.id());
+        boolean newlyVerified = status == ReportStatus.VERIFIED && r.getStatus() != ReportStatus.VERIFIED;
+        r.setStatus(status);
         r.setReviewedAt(Instant.now());
-        return reports.save(r);
+        CrimeReport saved = reports.save(r);
+        hub.toAll("reports");
+        if (newlyVerified) afterCommit(() -> areaAlerts.notifyNearby(saved.getId()));
+        return saved;
     }
 
     @Transactional
@@ -96,5 +109,18 @@ public class ReportService {
             throw new AccessDeniedException("Only pending reports you wrote can be deleted");
         }
         reports.delete(r);
+        hub.toAll("reports");
+    }
+
+    /** The area alert runs in the background and reads the report, so it must start after the commit. */
+    private static void afterCommit(Runnable r) {
+        if (org.springframework.transaction.support.TransactionSynchronizationManager.isSynchronizationActive()) {
+            org.springframework.transaction.support.TransactionSynchronizationManager.registerSynchronization(
+                    new org.springframework.transaction.support.TransactionSynchronization() {
+                        @Override public void afterCommit() { r.run(); }
+                    });
+        } else {
+            r.run();
+        }
     }
 }

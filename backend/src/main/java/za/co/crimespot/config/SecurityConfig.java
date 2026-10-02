@@ -23,6 +23,9 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import za.co.crimespot.auth.KeycloakAuthConverter;
+import za.co.crimespot.security.RateLimitFilter;
+import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
+import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
 
 import java.util.Arrays;
 import java.util.List;
@@ -32,18 +35,27 @@ import java.util.List;
 public class SecurityConfig {
 
     @Bean
-    SecurityFilterChain filterChain(HttpSecurity http, JwtDecoder decoder, KeycloakAuthConverter converter) throws Exception {
+    SecurityFilterChain filterChain(HttpSecurity http, JwtDecoder decoder, KeycloakAuthConverter converter,
+                                   RateLimitFilter rateLimit) throws Exception {
         http
             .csrf(AbstractHttpConfigurer::disable)
             .cors(c -> {})
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                .requestMatchers("/actuator/health", "/api/push/public-key").permitAll()
+                .requestMatchers("/actuator/health", "/api/push/public-key", "/ws").permitAll()
                 .anyRequest().authenticated())
             .oauth2ResourceServer(o -> o
                 .jwt(j -> j.decoder(decoder).jwtAuthenticationConverter(converter))
-                .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)));
+                .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
+            // Runs after the token is checked, so limits apply per user rather than per IP.
+            .addFilterAfter(rateLimit, BearerTokenAuthenticationFilter.class)
+            .headers(h -> h
+                // A JSON API never needs to load anything or be framed.
+                .contentSecurityPolicy(c -> c.policyDirectives("default-src 'none'; frame-ancestors 'none'"))
+                .httpStrictTransportSecurity(hsts -> hsts.includeSubDomains(true).maxAgeInSeconds(31_536_000))
+                .referrerPolicy(r -> r.policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.NO_REFERRER))
+                .frameOptions(f -> f.deny()));
         return http.build();
     }
 

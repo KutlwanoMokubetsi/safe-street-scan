@@ -1,6 +1,8 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ApiService } from '../core/api.service';
+import { RealtimeService } from '../core/realtime.service';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AuthService } from '../core/auth.service';
 import { crimeColor, crimeLabel, timeAgo } from '../core/crime-types';
 import { Report, Role, User } from '../core/models';
@@ -99,6 +101,7 @@ import { ToastService } from '../core/toast.service';
 })
 export class Moderation implements OnInit {
   private api = inject(ApiService);
+  private rt = inject(RealtimeService).on('reports').pipe(takeUntilDestroyed());
   private toast = inject(ToastService);
   protected auth = inject(AuthService);
 
@@ -111,6 +114,7 @@ export class Moderation implements OnInit {
   readonly ago = timeAgo;
 
   ngOnInit(): void {
+    this.rt.subscribe(() => this.reloadQueue());
     this.api.pendingReports().subscribe({
       next: q => { this.queue.set(q); this.loading.set(false); },
       error: err => { this.toast.error(errorMessage(err)); this.loading.set(false); },
@@ -118,6 +122,10 @@ export class Moderation implements OnInit {
     if (this.auth.isAdmin()) {
       this.api.users().subscribe({ next: u => this.users.set(u), error: err => this.toast.error(errorMessage(err)) });
     }
+  }
+
+  reloadQueue(): void {
+    this.api.pendingReports().subscribe({ next: q => this.queue.set(q), error: () => {} });
   }
 
   review(r: Report, status: 'VERIFIED' | 'REJECTED'): void {

@@ -6,9 +6,9 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import za.co.crimespot.auth.AuthUser;
+import za.co.crimespot.security.FieldCrypto;
 
 import java.util.Map;
 
@@ -35,15 +35,10 @@ public class PushController {
 
     @PostMapping("/subscribe")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @Transactional
     public void subscribe(@AuthenticationPrincipal AuthUser me, @RequestBody @Valid Subscribe body) {
-        // A device belongs to whoever signed in on it last.
-        PushSubscription s = subscriptions.findByEndpoint(body.endpoint()).orElseGet(PushSubscription::new);
-        s.setUserId(me.id());
-        s.setEndpoint(body.endpoint());
-        s.setP256dh(body.keys().p256dh());
-        s.setAuth(body.keys().auth());
-        subscriptions.save(s);
+        // A device belongs to whoever signed in on it last. Keys are encrypted like other sensitive fields.
+        subscriptions.upsert(me.id(), body.endpoint(),
+                FieldCrypto.encrypt(body.keys().p256dh()), FieldCrypto.encrypt(body.keys().auth()));
     }
 
     @PostMapping("/unsubscribe")

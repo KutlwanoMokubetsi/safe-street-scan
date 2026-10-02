@@ -2,6 +2,8 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { ApiService } from '../core/api.service';
+import { RealtimeService } from '../core/realtime.service';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { errorMessage } from '../core/auth.interceptor';
 import { FriendEntry, FriendsOverview } from '../core/models';
 import { ToastService } from '../core/toast.service';
@@ -126,6 +128,7 @@ import { ToastService } from '../core/toast.service';
 })
 export class Friends implements OnInit {
   private api = inject(ApiService);
+  private rt = inject(RealtimeService).on('friends').pipe(takeUntilDestroyed());
   private toast = inject(ToastService);
 
   readonly data = signal<FriendsOverview | null>(null);
@@ -133,7 +136,10 @@ export class Friends implements OnInit {
   readonly busy = signal(false);
   code = '';
 
-  ngOnInit(): void { this.load(); }
+  ngOnInit(): void {
+    this.load();
+    this.rt.subscribe(() => this.load());
+  }
 
   load(): void {
     this.api.friends().subscribe({

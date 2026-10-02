@@ -47,9 +47,10 @@ export class ApiService {
 
   // ---- Live location ----
   live() { return this.http.get<Live>(`${this.base}/live`); }
-  startSharing(minutes: number | null, friendIds: string[]) {
-    return this.http.post<Share>(`${this.base}/location/share`, { minutes, friendIds });
+  startSharing(minutes: number | null, friendIds: string[], checkInMinutes: number | null = null) {
+    return this.http.post<Share>(`${this.base}/location/share`, { minutes, friendIds, checkInMinutes });
   }
+  checkIn() { return this.http.post<void>(`${this.base}/location/checkin`, {}); }
   stopSharing() { return this.http.delete<void>(`${this.base}/location/share`); }
   sendLocation(latitude: number, longitude: number, accuracyM?: number) {
     return this.http.post<void>(`${this.base}/location`, { latitude, longitude, accuracyM });

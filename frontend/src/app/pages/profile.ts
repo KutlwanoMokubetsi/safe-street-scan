@@ -4,6 +4,7 @@ import { AuthService } from '../core/auth.service';
 import { errorMessage } from '../core/auth.interceptor';
 import { PushService } from '../core/push.service';
 import { ToastService } from '../core/toast.service';
+import { currentPosition } from '../core/geo';
 
 @Component({
   selector: 'app-profile',
@@ -26,6 +27,31 @@ import { ToastService } from '../core/toast.service';
         </div>
         <button class="btn btn-ink" type="submit" [disabled]="saving()">{{ saving() ? 'Saving…' : 'Save changes' }}</button>
       </form>
+
+      <section class="panel panel-body">
+        <h2>Alerts near home</h2>
+        <p>Get a notification when a <strong>verified</strong> incident is reported near your home.</p>
+        @if (auth.user()?.hasHome) {
+          <div class="field">
+            <label for="radius">Alert me within</label>
+            <select id="radius" [value]="auth.user()?.alertRadiusM ?? 0" (change)="setRadius(+$any($event.target).value)">
+              <option value="0">Off</option>
+              <option value="1000">1 km of home</option>
+              <option value="2000">2 km of home</option>
+              <option value="5000">5 km of home</option>
+            </select>
+          </div>
+          <div class="row">
+            <button class="btn btn-sm" type="button" (click)="setHome()" [disabled]="homeBusy()">Update home to where I am now</button>
+            <button class="btn btn-sm btn-danger" type="button" (click)="clearHome()">Remove home</button>
+          </div>
+        } @else {
+          <button class="btn btn-vest" type="button" (click)="setHome()" [disabled]="homeBusy()">
+            {{ homeBusy() ? 'Finding you…' : "I'm at home: use my location" }}
+          </button>
+        }
+        <p class="muted small hint">Your home point is rounded to about 100 m and stored encrypted. No one else can see it.</p>
+      </section>
 
       <section class="panel panel-body">
         <h2>Notifications</h2>
@@ -65,6 +91,7 @@ import { ToastService } from '../core/toast.service';
     p { margin-bottom: 12px; }
     .warn { color: #7A1F16; }
     .row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .hint { margin: 12px 0 0; }
     .legal { margin: 16px 0 0; }
   `,
 })
@@ -74,6 +101,7 @@ export class Profile implements OnInit {
   private toast = inject(ToastService);
 
   readonly saving = signal(false);
+  readonly homeBusy = signal(false);
   name = '';
   phone = '';
 
@@ -89,6 +117,31 @@ export class Profile implements OnInit {
     this.auth.updateProfile({ fullName: this.name, phone: this.phone }).subscribe({
       next: u => { this.auth.user.set(u); this.saving.set(false); this.toast.ok('Profile saved.'); },
       error: err => { this.saving.set(false); this.toast.error(errorMessage(err)); },
+    });
+  }
+
+  async setHome(): Promise<void> {
+    this.homeBusy.set(true);
+    const pos = await currentPosition(10_000);
+    if (!pos) { this.homeBusy.set(false); return this.toast.error('Allow location access to set your home area.'); }
+    const radius = this.auth.user()?.alertRadiusM || 2000;
+    this.auth.updateProfile({ homeLatitude: pos[0], homeLongitude: pos[1], alertRadiusM: radius }).subscribe({
+      next: u => { this.auth.user.set(u); this.homeBusy.set(false); this.toast.ok(`Home set. You'll get alerts within ${radius / 1000} km.`); },
+      error: err => { this.homeBusy.set(false); this.toast.error(errorMessage(err)); },
+    });
+  }
+
+  setRadius(alertRadiusM: number): void {
+    this.auth.updateProfile({ alertRadiusM }).subscribe({
+      next: u => { this.auth.user.set(u); this.toast.ok(alertRadiusM ? 'Alert distance saved.' : 'Alerts near home are off.'); },
+      error: err => this.toast.error(errorMessage(err)),
+    });
+  }
+
+  clearHome(): void {
+    this.auth.updateProfile({ clearHome: true }).subscribe({
+      next: u => { this.auth.user.set(u); this.toast.ok('Home removed.'); },
+      error: err => this.toast.error(errorMessage(err)),
     });
   }
 

@@ -4,6 +4,7 @@ import { ApiService } from './core/api.service';
 import { AuthService } from './core/auth.service';
 import { LiveService } from './core/live.service';
 import { PushService } from './core/push.service';
+import { RealtimeService } from './core/realtime.service';
 import { ToastService } from './core/toast.service';
 import { errorMessage } from './core/auth.interceptor';
 
@@ -18,6 +19,7 @@ export class App implements OnInit {
   protected live = inject(LiveService);
   protected toast = inject(ToastService);
   private push = inject(PushService);
+  private realtime = inject(RealtimeService);
   private api = inject(ApiService);
   private router = inject(Router);
 
@@ -35,6 +37,10 @@ export class App implements OnInit {
     if (!share) return 'Sharing your location';
     const n = share.viewerIds.length;
     const who = `${n} ${n === 1 ? 'friend' : 'friends'}`;
+    if (share.checkinDueAt) {
+      const due = new Date(share.checkinDueAt).toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit' });
+      return `Sharing with ${who}. Check in by ${due} or they'll be alerted`;
+    }
     if (!share.expiresAt) return `Sharing your location with ${who} until you stop`;
     const t = new Date(share.expiresAt).toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit' });
     return `Sharing your location with ${who} until ${t}`;
@@ -43,8 +49,16 @@ export class App implements OnInit {
   ngOnInit(): void {
     if (!this.auth.isLoggedIn()) return;
     this.auth.ensureUser();
+    this.realtime.start();
     this.live.start();
     this.push.check();
+  }
+
+  checkIn(): void {
+    this.api.checkIn().subscribe({
+      next: () => { this.live.refresh(); this.toast.ok("Checked in. Your friends know you're safe."); },
+      error: err => this.toast.error(errorMessage(err)),
+    });
   }
 
   stopSharing(): void {

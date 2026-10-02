@@ -60,6 +60,13 @@ const HOLD_MS = 3000;
           <p id="hold-help" class="muted small">Let go to cancel.</p>
         </div>
 
+        @if (smsLink()) {
+          <div class="fallback" role="alert">
+            <p><strong>The alert didn't go through.</strong> Text your friends your location instead:</p>
+            <a class="btn sms" [href]="smsLink()">Send SMS to {{ contacts().length }} {{ contacts().length === 1 ? 'friend' : 'friends' }}</a>
+          </div>
+        }
+
         <details class="msg">
           <summary>Add a short message (optional)</summary>
           <input [(ngModel)]="message" maxlength="280" placeholder="e.g. Car broke down on N1 near Midrand">
@@ -108,6 +115,9 @@ const HOLD_MS = 3000;
     .call strong { font: 700 1.5rem var(--font-head); }
     .call span { font-size: 0.8rem; color: var(--muted); }
     .call.primary { border-color: var(--ink); border-width: 2px; }
+    .fallback { background: #FDECEA; border: 1px solid #F3C2BD; border-radius: var(--radius-m); padding: 14px; margin-bottom: 20px; }
+    .fallback p { margin-bottom: 10px; }
+    .sms { width: 100%; background: var(--ink); color: #fff; border-color: var(--ink); }
     .safe { width: 100%; min-height: 52px; background: var(--safe); color: #fff; border-color: #24654A; font-size: 1.05rem; }
     @media (max-width: 480px) { .calls { grid-template-columns: 1fr; } }
   `,
@@ -121,6 +131,9 @@ export class Sos implements OnInit, OnDestroy {
   readonly progress = signal(0);
   readonly busy = signal(false);
   readonly friendCount = signal<number | null>(null);
+  /** Friends with phone numbers, kept on this device so the SMS fallback works offline. */
+  readonly contacts = signal<{ name: string; phone: string }[]>(this.cachedContacts());
+  readonly smsLink = signal('');
   message = '';
 
   private started = 0;
@@ -131,7 +144,15 @@ export class Sos implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.live.refresh();
-    this.api.friends().subscribe({ next: f => this.friendCount.set(f.friends.length), error: () => {} });
+    this.api.friends().subscribe({
+      next: f => {
+        this.friendCount.set(f.friends.length);
+        const c = f.friends.filter(x => x.person.phone).map(x => ({ name: x.person.name, phone: x.person.phone! }));
+        this.contacts.set(c);
+        try { localStorage.setItem('crimespot.sosContacts', JSON.stringify(c)); } catch { /* ignore */ }
+      },
+      error: () => {},
+    });
   }
 
   ngOnDestroy(): void { this.cancelHold(); }
@@ -192,8 +213,24 @@ export class Sos implements OnInit, OnDestroy {
       error: err => {
         this.busy.set(false);
         this.toast.error(errorMessage(err, "The alert didn't send.") + ' Call 10111 now.');
+        this.buildSms(pos);
       },
     });
+  }
+
+  private cachedContacts(): { name: string; phone: string }[] {
+    try { return JSON.parse(localStorage.getItem('crimespot.sosContacts') ?? '[]'); } catch { return []; }
+  }
+
+  /** One SMS to all friends with a phone number, with a map link to where you are. */
+  private buildSms(pos: [number, number] | null): void {
+    const phones = this.contacts().map(c => c.phone.replace(/[^+0-9]/g, ''));
+    if (!phones.length) return;
+    const where = pos ? ` I'm here: https://maps.google.com/?q=${pos[0].toFixed(5)},${pos[1].toFixed(5)}` : '';
+    const extra = this.message.trim() ? ` ${this.message.trim()}` : '';
+    const body = `EMERGENCY: I need help.${extra}${where} (sent from CrimeSpot)`;
+    // iOS separates recipients with commas and uses "&body"; Android accepts the same format.
+    this.smsLink.set(`sms:${phones.join(',')}${/iPhone|iPad/.test(navigator.userAgent) ? '&' : '?'}body=${encodeURIComponent(body)}`);
   }
 
   resolve(id: string): void {

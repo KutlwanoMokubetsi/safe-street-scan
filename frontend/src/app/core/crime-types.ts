@@ -35,3 +35,16 @@ export function timeAgo(iso: string): string {
   if (days < 30) return `${days} d ago`;
   return new Date(iso).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' });
 }
+
+/** Three severity groups keep the map readable; the full type is shown in the detail card. */
+export type Severity = 'violent' | 'property' | 'other';
+export const SEVERITY: Record<Severity, { label: string; color: string }> = {
+  violent: { label: 'Violent', color: '#C0392B' },
+  property: { label: 'Property', color: '#D9822B' },
+  other: { label: 'Other', color: '#5E6873' },
+};
+export function severityOf(t: CrimeType): Severity {
+  if (t === 'ASSAULT' || t === 'ROBBERY' || t === 'HIJACKING') return 'violent';
+  if (t === 'BURGLARY' || t === 'THEFT' || t === 'VANDALISM' || t === 'FRAUD') return 'property';
+  return 'other';
+}

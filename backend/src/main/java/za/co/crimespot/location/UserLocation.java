@@ -1,6 +1,7 @@
 package za.co.crimespot.location;
 
 import jakarta.persistence.*;
+import za.co.crimespot.security.EncryptedDoubleConverter;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -12,13 +13,16 @@ public class UserLocation {
     @Column(name = "user_id")
     private UUID userId;
 
-    @Column(nullable = false)
-    private double latitude;
+    @Column(nullable = false, columnDefinition = "text")
+    @Convert(converter = EncryptedDoubleConverter.class)
+    private Double latitude;
 
-    @Column(nullable = false)
-    private double longitude;
+    @Column(nullable = false, columnDefinition = "text")
+    @Convert(converter = EncryptedDoubleConverter.class)
+    private Double longitude;
 
-    @Column(name = "accuracy_m")
+    @Column(name = "accuracy_m", columnDefinition = "text")
+    @Convert(converter = EncryptedDoubleConverter.class)
     private Double accuracyM;
 
     @Column(name = "updated_at", nullable = false)

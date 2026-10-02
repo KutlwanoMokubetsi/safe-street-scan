@@ -11,6 +11,8 @@ export interface User {
   phone?: string;
   role: Role;
   friendCode: string;
+  hasHome: boolean;
+  alertRadiusM: number;
 }
 
 export interface Report {
@@ -81,6 +83,7 @@ export interface Share {
   startedAt: string;
   expiresAt?: string;
   viewerIds: string[];
+  checkinDueAt?: string;
 }
 
 export interface LiveFriend {

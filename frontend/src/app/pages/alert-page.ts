@@ -3,6 +3,8 @@ import { RouterLink } from '@angular/router';
 import * as L from 'leaflet';
 import { Subscription, switchMap, timer } from 'rxjs';
 import { ApiService } from '../core/api.service';
+import { RealtimeService } from '../core/realtime.service';
+import { merge } from 'rxjs';
 import { AuthService } from '../core/auth.service';
 import { errorMessage } from '../core/auth.interceptor';
 import { timeAgo } from '../core/crime-types';
@@ -63,6 +65,7 @@ import { Alert } from '../core/models';
 })
 export class AlertPage implements AfterViewInit, OnDestroy {
   private api = inject(ApiService);
+  private rt = inject(RealtimeService);
   protected auth = inject(AuthService);
 
   readonly id = input.required<string>();
@@ -84,7 +87,8 @@ export class AlertPage implements AfterViewInit, OnDestroy {
   }
 
   ngAfterViewInit(): void {
-    this.sub = timer(0, 10_000).pipe(switchMap(() => this.api.alert(this.id()))).subscribe({
+    // Live events update it instantly; the 30 s timer is a fallback if the socket drops.
+    this.sub = merge(timer(0, 30_000), this.rt.on('live')).pipe(switchMap(() => this.api.alert(this.id()))).subscribe({
       next: a => this.alert.set(a),
       error: err => this.error.set(errorMessage(err, "Couldn't load this alert.")),
     });

@@ -23,6 +23,10 @@ import { ToastService } from '../core/toast.service';
             <h2>You're sharing</h2>
             <p>With {{ viewerNames() }}
               {{ s.expiresAt ? 'until ' + time(s.expiresAt) : 'until you stop' }}.</p>
+            @if (s.checkinDueAt) {
+              <p class="due">Check in by <strong>{{ time(s.checkinDueAt) }}</strong>. If you don't, your friends get an emergency alert automatically.</p>
+              <button class="btn arrived" type="button" (click)="checkIn()" [disabled]="busy()">I've arrived safely</button>
+            }
             @if (live.gpsError()) { <p class="err">{{ live.gpsError() }}</p> }
             @else if (live.lastSentAt(); as t) { <p class="muted small">Last sent {{ t.toLocaleTimeString('en-ZA') }}</p> }
             <button class="btn btn-danger" type="button" (click)="stop()" [disabled]="busy()">Stop sharing</button>
@@ -36,6 +40,13 @@ import { ToastService } from '../core/toast.service';
               <label class="opt"><input type="radio" name="dur" [value]="60" [(ngModel)]="minutes"> 1 hour</label>
               <label class="opt"><input type="radio" name="dur" [value]="480" [(ngModel)]="minutes"> 8 hours</label>
               <label class="opt"><input type="radio" name="dur" [value]="null" [(ngModel)]="minutes"> Until I stop</label>
+            </fieldset>
+            <fieldset>
+              <legend>Alert my friends if I don't check in</legend>
+              <label class="opt"><input type="radio" name="chk" [value]="null" [(ngModel)]="checkIn_"> No check-in</label>
+              <label class="opt"><input type="radio" name="chk" [value]="30" [(ngModel)]="checkIn_"> Within 30 minutes</label>
+              <label class="opt"><input type="radio" name="chk" [value]="60" [(ngModel)]="checkIn_"> Within 1 hour</label>
+              <label class="opt"><input type="radio" name="chk" [value]="120" [(ngModel)]="checkIn_"> Within 2 hours</label>
             </fieldset>
             <fieldset>
               <legend>With</legend>
@@ -86,6 +97,8 @@ import { ToastService } from '../core/toast.service';
     .opt input { width: 20px; height: 20px; min-height: 0; }
     .note { color: var(--muted); margin-top: 12px; }
     .err { color: var(--risk); }
+    .due { background: #FFF6D6; border: 1px solid #F0D98A; padding: 10px 12px; border-radius: var(--radius-m); }
+    .arrived { width: 100%; background: var(--safe); color: #fff; border-color: #24654A; margin-bottom: 10px; }
     ul { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
     li button {
       width: 100%; display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
@@ -116,6 +129,7 @@ export class LivePage implements OnInit, AfterViewInit, OnDestroy {
   readonly chosen = signal<Set<string>>(new Set());
   readonly busy = signal(false);
   minutes: number | null = 60;
+  checkIn_: number | null = null;
 
   readonly myShare = computed(() => this.live.state()?.myShare ?? null);
   readonly visible = computed(() => this.live.state()?.friends ?? []);
@@ -156,13 +170,25 @@ export class LivePage implements OnInit, AfterViewInit, OnDestroy {
 
   start(): void {
     this.busy.set(true);
-    this.api.startSharing(this.minutes, [...this.chosen()]).subscribe({
+    if (this.checkIn_ && this.minutes && this.checkIn_ > this.minutes) {
+      this.toast.error('Choose a check-in time before sharing ends.');
+      return;
+    }
+    this.api.startSharing(this.minutes, [...this.chosen()], this.checkIn_).subscribe({
       next: () => {
         this.busy.set(false);
         this.live.refresh();
         navigator.geolocation?.getCurrentPosition(p => this.live.sendNow(p), () => {}, { enableHighAccuracy: true, timeout: 10_000 });
         this.toast.ok('Sharing your location.');
       },
+      error: err => { this.busy.set(false); this.toast.error(errorMessage(err)); },
+    });
+  }
+
+  checkIn(): void {
+    this.busy.set(true);
+    this.api.checkIn().subscribe({
+      next: () => { this.busy.set(false); this.live.refresh(); this.toast.ok("Checked in. Your friends know you're safe."); },
       error: err => { this.busy.set(false); this.toast.error(errorMessage(err)); },
     });
   }

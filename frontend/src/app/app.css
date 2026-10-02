@@ -42,6 +42,7 @@
   background: none; border: 1px solid currentColor; color: inherit; border-radius: var(--radius-s);
   font: 600 0.85rem var(--font-body); padding: 4px 12px; min-height: 32px; cursor: pointer;
 }
+.share-bar button.arrived { background: var(--safe); color: #fff; border-color: var(--safe); }
 .dot { width: 10px; height: 10px; border-radius: 50%; background: currentColor; animation: pulse 2s ease-in-out infinite; }
 @keyframes pulse { 50% { opacity: 0.3; } }
 

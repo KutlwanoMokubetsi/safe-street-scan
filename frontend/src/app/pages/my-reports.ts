@@ -1,6 +1,8 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ApiService } from '../core/api.service';
+import { RealtimeService } from '../core/realtime.service';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { crimeColor, crimeLabel, timeAgo } from '../core/crime-types';
 import { Report } from '../core/models';
 import { errorMessage } from '../core/auth.interceptor';
@@ -67,6 +69,7 @@ import { ToastService } from '../core/toast.service';
 })
 export class MyReports implements OnInit {
   private api = inject(ApiService);
+  private rt = inject(RealtimeService).on('reports').pipe(takeUntilDestroyed());
   private toast = inject(ToastService);
 
   readonly reports = signal<Report[]>([]);
@@ -79,7 +82,10 @@ export class MyReports implements OnInit {
     return s === 'VERIFIED' ? 'Verified' : s === 'REJECTED' ? 'Not published' : 'Waiting for review';
   }
 
+  private subscribed = false;
+
   ngOnInit(): void {
+    if (!this.subscribed) { this.subscribed = true; this.rt.subscribe(() => this.ngOnInit()); }
     this.api.myReports().subscribe({
       next: r => { this.reports.set(r); this.loading.set(false); },
       error: err => { this.toast.error(errorMessage(err, "Couldn't load your reports.")); this.loading.set(false); },

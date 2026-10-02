@@ -14,6 +14,16 @@ Community safety for South African neighbourhoods: report crime on a map, see ho
 - **Live location:** share with chosen friends for 1 hour, 8 hours, or until you stop. Only the latest position is stored, and it is deleted when sharing ends.
 - **SOS:** hold for 3 s. Friends get an urgent push notification, a red banner in the app, your live location, and a call button. Tap-to-call 10111 / 112 / 10177. "I'm safe" ends it and notifies friends.
 - **Push notifications** (Web Push / VAPID) for SOS, friend requests and location sharing.
+- **Real-time sync** over WebSocket (`/ws`): pages update instantly when reports, hotspots, friends, live locations or alerts change. Events carry no data; apps re-fetch through the access-checked API. Polling remains as a slow fallback.
+- **Check-in timer:** when sharing, "alert my friends if I don't check in within 30 min / 1 h / 2 h". Missed check-ins raise an SOS automatically.
+- **Alerts near home:** push notification for verified incidents within 1, 2 or 5 km of your home area (rounded to ~100 m, encrypted).
+- **SMS fallback:** if an SOS can't reach the server, one tap texts your friends your location.
+
+### Security
+- TLS everywhere; Neon encrypts storage at rest.
+- **Field-level encryption (AES-256-GCM)** in the API for names, phone numbers, live locations, home areas, SOS alerts and push keys. The key (`DATA_ENCRYPTION_KEY`) lives only in the API environment. **Back it up: without it, those fields can't be read.**
+- Rate limits per user (reads 300/min, writes 60/min, friend requests 20/hour); SOS is never limited.
+- Strict Content-Security-Policy on the web app; HSTS, no-referrer and deny-framing on the API.
 
 ### Limits of a web app
 - Location is sent only while CrimeSpot is open on screen. Background tracking needs a native wrapper (e.g. Capacitor).
@@ -50,6 +60,7 @@ Push notifications only work in production builds (`npx ng build` and serve `dis
 | `CORS_ALLOWED_ORIGINS` | Comma-separated web origins |
 | `ADMIN_EMAIL` | Becomes admin on first verified sign-in |
 | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` | `npx web-push generate-vapid-keys`; subject like `mailto:you@example.com` |
+| `DATA_ENCRYPTION_KEY` | **Required.** `openssl rand -base64 32`. Keep a safe copy |
 
 **Keycloak** (`keycloak/`)
 
@@ -90,6 +101,10 @@ The realm in `keycloak/realm/` is imported **only the first time** Keycloak star
 | GET | `/api/panic/{id}` | Owner or their friends |
 | GET | `/api/push/public-key` | Public |
 | POST | `/api/push/subscribe`, `/api/push/unsubscribe` | Signed in |
+
+## Mobile app
+
+See [docs/FLUTTER_PLAN.md](docs/FLUTTER_PLAN.md) for the Flutter build and store launch plan.
 
 ## Deploy
 

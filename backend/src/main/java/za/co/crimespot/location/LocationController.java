@@ -30,15 +30,17 @@ public class LocationController {
         this.users = users;
     }
 
-    public record StartShare(Integer minutes, List<UUID> friendIds) {}
+    public record StartShare(Integer minutes, List<UUID> friendIds, Integer checkInMinutes) {}
 
     public record Position(@NotNull @DecimalMin("-90") @DecimalMax("90") Double latitude,
                            @NotNull @DecimalMin("-180") @DecimalMax("180") Double longitude,
                            Double accuracyM) {}
 
-    public record ShareDto(UUID id, ShareReason reason, Instant startedAt, Instant expiresAt, Set<UUID> viewerIds) {
+    public record ShareDto(UUID id, ShareReason reason, Instant startedAt, Instant expiresAt, Set<UUID> viewerIds,
+                           Instant checkinDueAt) {
         static ShareDto from(LocationShare s) {
-            return new ShareDto(s.getId(), s.getReason(), s.getStartedAt(), s.getExpiresAt(), s.getViewers());
+            return new ShareDto(s.getId(), s.getReason(), s.getStartedAt(), s.getExpiresAt(), s.getViewers(),
+                    s.getCheckinDueAt());
         }
     }
 
@@ -51,13 +53,19 @@ public class LocationController {
     @PostMapping("/location/share")
     @ResponseStatus(HttpStatus.CREATED)
     public ShareDto start(@AuthenticationPrincipal AuthUser me, @RequestBody StartShare body) {
-        return ShareDto.from(locations.startManual(me.id(), body.minutes(), body.friendIds()));
+        return ShareDto.from(locations.startManual(me.id(), body.minutes(), body.friendIds(), body.checkInMinutes()));
     }
 
     @DeleteMapping("/location/share")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void stop(@AuthenticationPrincipal AuthUser me) {
         locations.stop(me.id(), ShareReason.MANUAL);
+    }
+
+    @PostMapping("/location/checkin")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void checkIn(@AuthenticationPrincipal AuthUser me) {
+        locations.checkIn(me.id());
     }
 
     @PostMapping("/location")

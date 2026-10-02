@@ -24,13 +24,15 @@ public class HotspotService {
     private final CrimeHotspotRepository hotspots;
     private final HotspotProperties props;
     private final TransactionTemplate tx;
+    private final za.co.crimespot.realtime.RealtimeHub hub;
 
     public HotspotService(CrimeReportRepository reports, CrimeHotspotRepository hotspots,
-                          HotspotProperties props, TransactionTemplate tx) {
+                          HotspotProperties props, TransactionTemplate tx, za.co.crimespot.realtime.RealtimeHub hub) {
         this.reports = reports;
         this.hotspots = hotspots;
         this.props = props;
         this.tx = tx;
+        this.hub = hub;
     }
 
     public List<CrimeHotspot> active() {
@@ -75,6 +77,7 @@ public class HotspotService {
             return h;
         }).toList());
 
+        hub.toAll("hotspots");
         log.info("Hotspots regenerated: {} from {} reports", detected.size(), recent.size());
         return detected.size();
     }

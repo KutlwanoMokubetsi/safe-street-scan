@@ -78,7 +78,19 @@
                   "with": "src/environments/environment.prod.ts"
                 }
               ],
-              "serviceWorker": "ngsw-config.json"
+              "serviceWorker": "ngsw-config.json",
+              "index": {
+                "input": "src/index.prod.html",
+                "output": "index.html"
+              },
+              "optimization": {
+                "scripts": true,
+                "styles": {
+                  "minify": true,
+                  "inlineCritical": false
+                },
+                "fonts": true
+              }
             },
             "development": {
               "optimization": false,

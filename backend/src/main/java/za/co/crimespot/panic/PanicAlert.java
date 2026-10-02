@@ -1,6 +1,8 @@
 package za.co.crimespot.panic;
 
 import jakarta.persistence.*;
+import za.co.crimespot.security.EncryptedDoubleConverter;
+import za.co.crimespot.security.EncryptedStringConverter;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -15,12 +17,20 @@ public class PanicAlert {
     @Column(name = "user_id", nullable = false)
     private UUID userId;
 
+    @Column(columnDefinition = "text")
+    @Convert(converter = EncryptedDoubleConverter.class)
     private Double latitude;
+
+    @Column(columnDefinition = "text")
+    @Convert(converter = EncryptedDoubleConverter.class)
     private Double longitude;
 
-    @Column(name = "accuracy_m")
+    @Column(name = "accuracy_m", columnDefinition = "text")
+    @Convert(converter = EncryptedDoubleConverter.class)
     private Double accuracyM;
 
+    @Column(columnDefinition = "text")
+    @Convert(converter = EncryptedStringConverter.class)
     private String message;
 
     @Enumerated(EnumType.STRING)

@@ -111,3 +111,18 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--i
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 }
+
+/* Maps: a quiet greyscale base so reports and hotspots stand out. Applies to every map in the app. */
+.leaflet-tile-pane { filter: grayscale(1) brightness(1.05) contrast(0.9); }
+.leaflet-control-zoom { border: 0 !important; box-shadow: 0 2px 8px rgba(23, 32, 43, 0.18) !important; }
+.leaflet-control-zoom a { width: 40px !important; height: 40px !important; line-height: 40px !important; color: var(--ink) !important; }
+.leaflet-control-attribution { font-size: 10px; background: rgba(255, 255, 255, 0.7) !important; }
+
+/* Map markers (divIcons) */
+.cs-dot { width: 14px; height: 14px; border-radius: 50%; background: var(--c); border: 2px solid #fff; box-shadow: 0 1px 3px rgba(0,0,0,.35); }
+.cs-dot.unverified { background: #fff; border: 3px solid var(--c); width: 13px; height: 13px; }
+.cs-cluster {
+  display: grid; place-items: center; border-radius: 50%;
+  background: var(--ink); color: #fff; font: 600 13px var(--font-body);
+  border: 3px solid rgba(255,255,255,.9); box-shadow: 0 2px 6px rgba(0,0,0,.3);
+}

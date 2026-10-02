@@ -22,13 +22,16 @@ public class FriendService {
     private final UserRepository users;
     private final LocationService locations;
     private final NotificationService notifications;
+    private final za.co.crimespot.realtime.RealtimeHub hub;
 
     public FriendService(FriendshipRepository friendships, UserRepository users,
-                         LocationService locations, NotificationService notifications) {
+                         LocationService locations, NotificationService notifications,
+                         za.co.crimespot.realtime.RealtimeHub hub) {
         this.friendships = friendships;
         this.users = users;
         this.locations = locations;
         this.notifications = notifications;
+        this.hub = hub;
     }
 
     public record Person(UUID userId, String name, String phone) {}
@@ -81,6 +84,8 @@ public class FriendService {
 
         String name = users.findById(me).map(User::displayName).orElse("Someone");
         notifications.send(target.getId(), "New friend request", name + " wants to add you on CrimeSpot.", "/friends");
+        hub.toUsers(List.of(me, target.getId()), "friends");
+        hub.notice(List.of(target.getId()), name + " sent you a friend request");
     }
 
     @Transactional
@@ -94,6 +99,8 @@ public class FriendService {
         friendships.save(f);
         String name = users.findById(me).map(User::displayName).orElse("Someone");
         notifications.send(f.getRequesterId(), "Friend request accepted", name + " accepted your friend request.", "/friends");
+        hub.toUsers(List.of(me, f.getRequesterId()), "friends");
+        hub.notice(List.of(f.getRequesterId()), name + " accepted your friend request");
     }
 
     /** Declines a request, cancels one you sent, or removes a friend. Also stops location sharing both ways. */
@@ -105,6 +112,7 @@ public class FriendService {
         friendships.delete(f);
         locations.removeViewer(me, other);
         locations.removeViewer(other, me);
+        hub.toUsers(List.of(me, other), "friends");
     }
 
     public boolean areFriends(UUID a, UUID b) {
