@@ -1,24 +1,60 @@
-# Render Blueprint: API (Docker) + Angular static site. Database: Neon or Render Postgres.
+# Render Blueprint: Keycloak, API (Docker) and Angular static site. Database: Neon.
 services:
+  - type: web
+    name: crimespot-auth
+    runtime: docker
+    plan: starter
+    region: frankfurt
+    rootDir: keycloak
+    healthCheckPath: /realms/crimespot
+    envVars:
+      - key: KC_DB_URL            # jdbc:postgresql://<host>/keycloak?sslmode=require
+        sync: false
+      - key: KC_DB_USERNAME
+        sync: false
+      - key: KC_DB_PASSWORD
+        sync: false
+      - key: KC_HOSTNAME
+        value: https://crimespot-auth.onrender.com
+      - key: KC_PROXY_HEADERS
+        value: xforwarded
+      - key: KC_HTTP_ENABLED
+        value: "true"
+      - key: KC_BOOTSTRAP_ADMIN_USERNAME
+        sync: false
+      - key: KC_BOOTSTRAP_ADMIN_PASSWORD
+        sync: false
+      - key: CRIMESPOT_WEB_URL
+        value: https://crimespot-web.onrender.com
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+
   - type: web
     name: crimespot-api
     runtime: docker
+    region: frankfurt
     rootDir: backend
     healthCheckPath: /actuator/health
     envVars:
-      - key: DATABASE_URL        # jdbc:postgresql://<host>/<db>?sslmode=require
+      - key: DATABASE_URL         # jdbc:postgresql://<host>/crimespot?sslmode=require
         sync: false
       - key: DATABASE_USERNAME
         sync: false
       - key: DATABASE_PASSWORD
         sync: false
-      - key: JWT_SECRET
-        generateValue: true
-      - key: CORS_ALLOWED_ORIGINS  # e.g. https://crimespot-web.onrender.com
-        sync: false
+      - key: KEYCLOAK_ISSUER
+        value: https://crimespot-auth.onrender.com/realms/crimespot
+      - key: CORS_ALLOWED_ORIGINS
+        value: https://crimespot-web.onrender.com
       - key: ADMIN_EMAIL
         sync: false
-      - key: ADMIN_PASSWORD
+      - key: VAPID_PUBLIC_KEY
+        sync: false
+      - key: VAPID_PRIVATE_KEY
+        sync: false
+      - key: VAPID_SUBJECT
         sync: false
 
   - type: web

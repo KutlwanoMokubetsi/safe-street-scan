@@ -7,14 +7,10 @@ export type CrimeType =
 export interface User {
   id: string;
   email: string;
-  fullName: string;
+  fullName?: string;
   phone?: string;
   role: Role;
-}
-
-export interface AuthResponse {
-  token: string;
-  user: User;
+  friendCode: string;
 }
 
 export interface Report {
@@ -64,4 +60,60 @@ export interface Bounds {
   maxLat: number;
   minLng: number;
   maxLng: number;
+}
+
+// ---- Friends, live location, panic ----
+
+export interface Person { userId: string; name: string; phone?: string; }
+export interface FriendEntry { friendshipId: string; person: Person; since: string; }
+export interface FriendsOverview {
+  myCode: string;
+  friends: FriendEntry[];
+  incoming: FriendEntry[];
+  outgoing: FriendEntry[];
+}
+
+export type ShareReason = 'MANUAL' | 'PANIC';
+
+export interface Share {
+  id: string;
+  reason: ShareReason;
+  startedAt: string;
+  expiresAt?: string;
+  viewerIds: string[];
+}
+
+export interface LiveFriend {
+  userId: string;
+  name: string;
+  phone?: string;
+  reason: ShareReason;
+  expiresAt?: string;
+  latitude?: number;
+  longitude?: number;
+  accuracyM?: number;
+  updatedAt?: string;
+}
+
+export interface Alert {
+  id: string;
+  userId: string;
+  name: string;
+  phone?: string;
+  status: 'ACTIVE' | 'RESOLVED';
+  message?: string;
+  createdAt: string;
+  resolvedAt?: string;
+  latitude?: number;
+  longitude?: number;
+  accuracyM?: number;
+  locationUpdatedAt?: string;
+}
+
+export interface Live {
+  sharing: boolean;
+  myShare?: Share;
+  myAlert?: Alert;
+  friends: LiveFriend[];
+  alerts: Alert[];
 }

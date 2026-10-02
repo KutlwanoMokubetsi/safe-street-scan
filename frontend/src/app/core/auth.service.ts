@@ -1,64 +1,65 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { Router } from '@angular/router';
-import { Observable, tap } from 'rxjs';
+import { firstValueFrom } from 'rxjs';
 import { environment } from '../../environments/environment';
-import { AuthResponse, User } from './models';
-
-const TOKEN_KEY = 'crimespot.token';
-const USER_KEY = 'crimespot.user';
-
-function read(key: string): string | null {
-  try { return localStorage.getItem(key); } catch { return null; }
-}
+import { keycloak } from './keycloak';
+import { User } from './models';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private http = inject(HttpClient);
-  private router = inject(Router);
 
-  private readonly _token = signal<string | null>(read(TOKEN_KEY));
-  private readonly _user = signal<User | null>(JSON.parse(read(USER_KEY) ?? 'null'));
+  /** Set once at startup from Keycloak; a sign-in or sign-out reloads the page. */
+  readonly isLoggedIn = signal(!!keycloak.authenticated);
+  readonly user = signal<User | null>(null);
 
-  readonly token = this._token.asReadonly();
-  readonly user = this._user.asReadonly();
-  readonly isLoggedIn = computed(() => !!this._token());
-  readonly canModerate = computed(() => ['MODERATOR', 'ADMIN'].includes(this._user()?.role ?? ''));
-  readonly isAdmin = computed(() => this._user()?.role === 'ADMIN');
+  readonly canModerate = computed(() => ['MODERATOR', 'ADMIN'].includes(this.user()?.role ?? ''));
+  readonly isAdmin = computed(() => this.user()?.role === 'ADMIN');
+  readonly firstName = computed(() => {
+    const u = this.user();
+    return (u?.fullName || u?.email.split('@')[0] || '').split(' ')[0];
+  });
 
-  login(email: string, password: string): Observable<AuthResponse> {
-    return this.http.post<AuthResponse>(`${environment.apiUrl}/api/auth/login`, { email, password })
-      .pipe(tap(r => this.store(r)));
+  private loading?: Promise<User | null>;
+
+  /** Loads the local profile (role, friend code). Safe to call many times. */
+  ensureUser(): Promise<User | null> {
+    if (!this.isLoggedIn()) return Promise.resolve(null);
+    if (this.user()) return Promise.resolve(this.user());
+    this.loading ??= firstValueFrom(this.http.get<User>(`${environment.apiUrl}/api/me`))
+      .then(u => { this.user.set(u); return u; })
+      .catch(() => null)
+      .finally(() => (this.loading = undefined));
+    return this.loading;
   }
 
-  register(data: { email: string; password: string; fullName: string; phone?: string }): Observable<AuthResponse> {
-    return this.http.post<AuthResponse>(`${environment.apiUrl}/api/auth/register`, data)
-      .pipe(tap(r => this.store(r)));
+  async reloadUser(): Promise<void> {
+    const u = await firstValueFrom(this.http.get<User>(`${environment.apiUrl}/api/me`));
+    this.user.set(u);
   }
 
-  /** Refreshes the cached user, so role changes made by an admin show up. */
-  refreshMe(): void {
-    if (!this._token()) return;
-    this.http.get<User>(`${environment.apiUrl}/api/auth/me`).subscribe({
-      next: u => { this._user.set(u); this.write(USER_KEY, JSON.stringify(u)); },
-    });
+  updateProfile(data: { fullName?: string; phone?: string }) {
+    return this.http.patch<User>(`${environment.apiUrl}/api/me`, data);
+  }
+
+  login(): void {
+    keycloak.login({ redirectUri: `${location.origin}/` });
+  }
+
+  loginWithGoogle(): void {
+    keycloak.login({ idpHint: 'google', redirectUri: `${location.origin}/` });
+  }
+
+  register(): void {
+    keycloak.register({ redirectUri: `${location.origin}/` });
+  }
+
+  /** Change password, email etc. on Keycloak's account page. */
+  manageAccount(): void {
+    keycloak.accountManagement();
   }
 
   logout(): void {
-    this._token.set(null);
-    this._user.set(null);
-    try { localStorage.removeItem(TOKEN_KEY); localStorage.removeItem(USER_KEY); } catch { /* ignore */ }
-    this.router.navigateByUrl('/login');
-  }
-
-  private store(r: AuthResponse): void {
-    this._token.set(r.token);
-    this._user.set(r.user);
-    this.write(TOKEN_KEY, r.token);
-    this.write(USER_KEY, JSON.stringify(r.user));
-  }
-
-  private write(key: string, value: string): void {
-    try { localStorage.setItem(key, value); } catch { /* private mode: session only */ }
+    keycloak.logout({ redirectUri: `${location.origin}/welcome` });
   }
 }

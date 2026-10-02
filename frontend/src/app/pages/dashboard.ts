@@ -139,7 +139,7 @@ export class Dashboard implements OnInit {
   pct = (s: number) => Math.round(s * 100);
 
   firstName() {
-    return this.auth.user()?.fullName?.split(' ')[0] || 'there';
+    return this.auth.firstName() || 'there';
   }
 
   ngOnInit(): void { this.load(); }

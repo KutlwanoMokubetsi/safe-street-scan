@@ -11,6 +11,8 @@
     <nav class="nav" aria-label="Main">
       <a routerLink="/" routerLinkActive="on" [routerLinkActiveOptions]="{ exact: true }">Overview</a>
       <a routerLink="/map" routerLinkActive="on">Map</a>
+      <a routerLink="/live" routerLinkActive="on">Live</a>
+      <a routerLink="/friends" routerLinkActive="on">Friends</a>
       <a routerLink="/my-reports" routerLinkActive="on">My reports</a>
       @if (auth.canModerate()) {
         <a routerLink="/moderate" routerLinkActive="on">Review</a>
@@ -18,10 +20,30 @@
     </nav>
 
     <div class="right">
+      <a routerLink="/sos" class="btn sos-btn">SOS</a>
       <a routerLink="/report" class="btn btn-vest report-btn">Report incident</a>
-      <button class="signout" type="button" (click)="auth.logout()">Sign out</button>
+      <a routerLink="/profile" class="avatar" aria-label="Your profile">{{ initials() }}</a>
     </div>
   </header>
+
+  @for (a of live.friendAlerts(); track a.id) {
+    <a class="alert-banner" [routerLink]="['/alerts', a.id]" role="alert">
+      <strong>{{ a.name }} needs help.</strong>
+      <span>Tap to see where they are</span>
+    </a>
+  }
+
+  @if (live.sharing()) {
+    <div class="share-bar" [class.panic]="!!live.myAlert()" role="status">
+      <span class="dot" aria-hidden="true"></span>
+      <span class="txt">{{ shareText() }}</span>
+      @if (live.myAlert()) {
+        <button type="button" (click)="openMyAlert()">View</button>
+      } @else {
+        <button type="button" (click)="stopSharing()">Stop</button>
+      }
+    </div>
+  }
 }
 
 <main>
@@ -29,10 +51,12 @@
 </main>
 
 @if (auth.isLoggedIn()) {
-  <a routerLink="/report" class="report-bar" aria-label="Report an incident">
-    <span class="stripe" aria-hidden="true"></span>
-    Report incident
-  </a>
+  <div class="bottom-bar">
+    <a routerLink="/sos" class="sos-half" aria-label="Emergency SOS">SOS</a>
+    <a routerLink="/report" class="report-half" aria-label="Report an incident">
+      <span class="stripe" aria-hidden="true"></span>Report
+    </a>
+  </div>
 }
 
 <div class="toasts" aria-live="polite">

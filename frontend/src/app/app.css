@@ -1,37 +1,69 @@
 .bar {
   position: sticky; top: 0; z-index: 1000;
-  display: flex; align-items: center; gap: 24px;
+  display: flex; align-items: center; gap: 20px;
   height: 60px; padding: 0 16px;
   background: var(--ink); color: #fff;
 }
 .brand { display: flex; align-items: center; gap: 8px; text-decoration: none; font: 700 1.3rem var(--font-head); }
-.nav { display: flex; gap: 4px; height: 100%; }
+.nav { display: flex; gap: 2px; height: 100%; }
 .nav a {
-  display: flex; align-items: center; padding: 0 12px;
+  display: flex; align-items: center; padding: 0 10px; white-space: nowrap;
   color: #C9D1D9; text-decoration: none; font-weight: 500;
   border-bottom: 3px solid transparent;
 }
 .nav a:hover { color: #fff; }
 .nav a.on { color: #fff; border-bottom-color: var(--vest); }
-.right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
-.signout { background: none; border: 0; color: #C9D1D9; font: inherit; cursor: pointer; padding: 8px; }
-.signout:hover { color: #fff; }
+.right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+.sos-btn { background: var(--risk); color: #fff; border-color: #9E2A1F; font-weight: 700; letter-spacing: 0.04em; }
+.sos-btn:hover { background: #A93226; border-color: #9E2A1F; }
+.avatar {
+  width: 36px; height: 36px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: var(--ink-soft); color: #fff; text-decoration: none;
+  font: 600 0.85rem var(--font-body); border: 1px solid #3A4757;
+}
 
-/* Mobile: nav becomes a scrolling strip, report becomes a hi-vis bar at the bottom */
-.report-bar { display: none; }
+/* Friend in danger: impossible to miss, on every page */
+.alert-banner {
+  display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap;
+  padding: 12px 16px; background: var(--risk); color: #fff; text-decoration: none;
+  position: sticky; top: 60px; z-index: 999;
+}
+.alert-banner span { text-decoration: underline; }
 
-@media (max-width: 760px) {
+.share-bar {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 16px; background: #E8F3EE; color: #1E5A41; font-size: 0.9rem;
+  border-bottom: 1px solid #C5E0D3;
+}
+.share-bar.panic { background: #FDECEA; color: #7A1F16; border-bottom-color: #F3C2BD; }
+.share-bar .txt { flex: 1; }
+.share-bar button {
+  background: none; border: 1px solid currentColor; color: inherit; border-radius: var(--radius-s);
+  font: 600 0.85rem var(--font-body); padding: 4px 12px; min-height: 32px; cursor: pointer;
+}
+.dot { width: 10px; height: 10px; border-radius: 50%; background: currentColor; animation: pulse 2s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: 0.3; } }
+
+.bottom-bar { display: none; }
+
+@media (max-width: 860px) {
   .bar { flex-wrap: wrap; height: auto; padding: 10px 12px 0; gap: 8px; }
   .nav { order: 3; width: 100%; overflow-x: auto; height: 44px; }
-  .report-btn { display: none; }
-  .report-bar {
-    display: flex; align-items: center; justify-content: center; gap: 10px;
+  .sos-btn, .report-btn { display: none; }
+  .alert-banner { top: 0; position: static; }
+  .bottom-bar {
+    display: grid; grid-template-columns: 1fr 2fr;
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 1000;
-    height: 60px; padding-bottom: env(safe-area-inset-bottom, 0);
-    background: var(--vest); color: var(--ink);
-    font: 700 1.15rem var(--font-head); text-decoration: none;
-    border-top: 2px solid var(--vest-deep);
+    height: calc(60px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: env(safe-area-inset-bottom, 0px);
   }
+  .bottom-bar a {
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    font: 700 1.15rem var(--font-head); text-decoration: none;
+  }
+  .sos-half { background: var(--risk); color: #fff; letter-spacing: 0.06em; }
+  .report-half { background: var(--vest); color: var(--ink); border-top: 2px solid var(--vest-deep); }
   .stripe {
     width: 28px; height: 14px;
     background: repeating-linear-gradient(-45deg, var(--ink) 0 4px, transparent 4px 8px);
@@ -42,7 +74,7 @@
   position: fixed; z-index: 2000; right: 16px; bottom: 16px;
   display: flex; flex-direction: column; gap: 8px; max-width: min(380px, calc(100vw - 32px));
 }
-@media (max-width: 760px) { .toasts { bottom: 76px; } }
+@media (max-width: 860px) { .toasts { bottom: 76px; } }
 .toast {
   display: flex; align-items: flex-start; gap: 12px; justify-content: space-between;
   padding: 12px 14px; border-radius: var(--radius-m);

@@ -9,15 +9,20 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
+import org.springframework.security.oauth2.core.OAuth2Error;
+import org.springframework.security.oauth2.core.OAuth2TokenValidator;
+import org.springframework.security.oauth2.core.OAuth2TokenValidatorResult;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.JwtValidators;
+import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import za.co.crimespot.auth.JwtAuthFilter;
+import za.co.crimespot.auth.KeycloakAuthConverter;
 
 import java.util.Arrays;
 import java.util.List;
@@ -27,23 +32,34 @@ import java.util.List;
 public class SecurityConfig {
 
     @Bean
-    SecurityFilterChain filterChain(HttpSecurity http, JwtAuthFilter jwtFilter) throws Exception {
+    SecurityFilterChain filterChain(HttpSecurity http, JwtDecoder decoder, KeycloakAuthConverter converter) throws Exception {
         http
             .csrf(AbstractHttpConfigurer::disable)
             .cors(c -> {})
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                .requestMatchers("/api/auth/register", "/api/auth/login", "/actuator/health").permitAll()
+                .requestMatchers("/actuator/health", "/api/push/public-key").permitAll()
                 .anyRequest().authenticated())
-            .exceptionHandling(e -> e.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
-            .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+            .oauth2ResourceServer(o -> o
+                .jwt(j -> j.decoder(decoder).jwtAuthenticationConverter(converter))
+                .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)));
         return http.build();
     }
 
+    /**
+     * Keys are fetched lazily from Keycloak, so the API still starts if Keycloak is briefly down.
+     * Tokens must come from our realm and be meant for this API.
+     */
     @Bean
-    PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
+    JwtDecoder jwtDecoder(@Value("${app.auth.issuer}") String issuer, @Value("${app.auth.audience}") String audience) {
+        String base = issuer.endsWith("/") ? issuer.substring(0, issuer.length() - 1) : issuer;
+        NimbusJwtDecoder decoder = NimbusJwtDecoder.withJwkSetUri(base + "/protocol/openid-connect/certs").build();
+        OAuth2TokenValidator<Jwt> audienceCheck = jwt -> jwt.getAudience() != null && jwt.getAudience().contains(audience)
+                ? OAuth2TokenValidatorResult.success()
+                : OAuth2TokenValidatorResult.failure(new OAuth2Error("invalid_token", "Token is not meant for this API", null));
+        decoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(JwtValidators.createDefaultWithIssuer(base), audienceCheck));
+        return decoder;
     }
 
     @Bean

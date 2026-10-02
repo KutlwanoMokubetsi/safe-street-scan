@@ -1,4 +1,5 @@
-# Local Postgres for development: docker compose up -d
+# Local development: docker compose up -d
+# Postgres on 5432, Keycloak on http://localhost:8180 (admin console login: admin / admin)
 services:
   db:
     image: postgres:16-alpine
@@ -10,5 +11,21 @@ services:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.4
+    command: ["start-dev", "--import-realm", "--http-port=8180"]
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+      CRIMESPOT_WEB_URL: http://localhost:4200
+      # Optional: Google login locally
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-set-in-admin-console}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-set-in-admin-console}
+    ports:
+      - "8180:8180"
+    volumes:
+      - ./keycloak/realm:/opt/keycloak/data/import:ro
+
 volumes:
   pgdata:

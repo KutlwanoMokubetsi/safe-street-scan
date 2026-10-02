@@ -1,0 +1,79 @@
+{
+  "realm": "crimespot",
+  "displayName": "CrimeSpot",
+  "enabled": true,
+  "sslRequired": "external",
+  "registrationAllowed": true,
+  "registrationEmailAsUsername": true,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": false,
+  "rememberMe": true,
+  "verifyEmail": false,
+  "bruteForceProtected": true,
+  "failureFactor": 10,
+  "permanentLockout": false,
+  "maxFailureWaitSeconds": 900,
+  "accessTokenLifespan": 300,
+  "ssoSessionIdleTimeout": 1209600,
+  "ssoSessionMaxLifespan": 2592000,
+  "ssoSessionIdleTimeoutRememberMe": 2592000,
+  "ssoSessionMaxLifespanRememberMe": 5184000,
+  "loginTheme": "keycloak.v2",
+  "passwordPolicy": "length(8)",
+  "clients": [
+    {
+      "clientId": "crimespot-web",
+      "name": "CrimeSpot web app",
+      "enabled": true,
+      "publicClient": true,
+      "protocol": "openid-connect",
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "rootUrl": "${CRIMESPOT_WEB_URL:http://localhost:4200}",
+      "baseUrl": "/",
+      "redirectUris": [
+        "${CRIMESPOT_WEB_URL:http://localhost:4200}/*",
+        "http://localhost:4200/*"
+      ],
+      "webOrigins": [
+        "${CRIMESPOT_WEB_URL:http://localhost:4200}",
+        "http://localhost:4200"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "${CRIMESPOT_WEB_URL:http://localhost:4200}/*##http://localhost:4200/*"
+      },
+      "protocolMappers": [
+        {
+          "name": "crimespot-api-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.custom.audience": "crimespot-api",
+            "access.token.claim": "true",
+            "id.token.claim": "false"
+          }
+        }
+      ]
+    }
+  ],
+  "identityProviders": [
+    {
+      "alias": "google",
+      "displayName": "Google",
+      "providerId": "google",
+      "enabled": true,
+      "trustEmail": true,
+      "storeToken": false,
+      "firstBrokerLoginFlowAlias": "first broker login",
+      "config": {
+        "clientId": "${GOOGLE_CLIENT_ID:set-in-admin-console}",
+        "clientSecret": "${GOOGLE_CLIENT_SECRET:set-in-admin-console}",
+        "defaultScope": "openid profile email",
+        "syncMode": "IMPORT"
+      }
+    }
+  ]
+}
