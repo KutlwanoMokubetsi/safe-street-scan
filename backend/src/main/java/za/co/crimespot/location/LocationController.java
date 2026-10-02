@@ -44,7 +44,7 @@ public class LocationController {
         }
     }
 
-    public record LiveFriend(UUID userId, String name, String phone, ShareReason reason, Instant expiresAt,
+    public record LiveFriend(UUID userId, String name, String phone, String avatarUrl, ShareReason reason, Instant expiresAt,
                              Double latitude, Double longitude, Double accuracyM, Instant updatedAt) {}
 
     public record Live(boolean sharing, ShareDto myShare, AlertDto myAlert,
@@ -92,7 +92,7 @@ public class LocationController {
             User u = people.get(s.getUserId());
             if (u == null) continue;
             var loc = locations.location(u.getId()).orElse(null);
-            friends.add(new LiveFriend(u.getId(), u.displayName(), u.getPhone(), s.getReason(), s.getExpiresAt(),
+            friends.add(new LiveFriend(u.getId(), u.displayName(), u.getPhone(), u.getAvatarUrl(), s.getReason(), s.getExpiresAt(),
                     loc == null ? null : loc.getLatitude(), loc == null ? null : loc.getLongitude(),
                     loc == null ? null : loc.getAccuracyM(), loc == null ? null : loc.getUpdatedAt()));
         }

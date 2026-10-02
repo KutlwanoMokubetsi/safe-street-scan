@@ -4,8 +4,8 @@ import { ApiService } from '../core/api.service';
 import { RealtimeService } from '../core/realtime.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AuthService } from '../core/auth.service';
-import { crimeColor, crimeLabel, timeAgo } from '../core/crime-types';
-import { Report, Role, User } from '../core/models';
+import { CRIME_TYPES, crimeColor, crimeLabel, timeAgo } from '../core/crime-types';
+import { CrimeType, Report, Role, Suggestion, User } from '../core/models';
 import { errorMessage } from '../core/auth.interceptor';
 import { ToastService } from '../core/toast.service';
 
@@ -23,6 +23,62 @@ import { ToastService } from '../core/toast.service';
           {{ regenerating() ? 'Updating…' : 'Update hotspots now' }}
         </button>
       </div>
+
+      <section class="panel sugg">
+        <div class="panel-head">
+          <h2>Suggested from news</h2>
+          <button class="btn btn-sm" type="button" (click)="refreshSuggestions()">Check news now</button>
+        </div>
+        <p class="muted small intro">Machine-learning suggestions from local news. Nothing is published unless you accept it.
+          Check the source, the place and the type. Accepting creates a verified report linked to the article.</p>
+        @if (suggestions().length === 0) {
+          <p class="empty">No suggestions right now. They appear when recent local news describes a specific incident at a specific place.</p>
+        } @else {
+          <ul class="queue">
+            @for (s of suggestions(); track s.id) {
+              <li [style.--c]="color(s.crimeType)">
+                <div class="main">
+                  <a [href]="s.url" target="_blank" rel="noopener noreferrer" class="headline">{{ s.title }} ↗</a>
+                  <p class="small meta">
+                    <span class="type-tag">{{ label(s.crimeType) }}</span>
+                    <span class="muted">{{ pct(s.confidence) }}% confident</span>
+                    <span [class.multi]="s.corroborations > 1">{{ s.corroborations }} {{ s.corroborations === 1 ? 'source' : 'sources' }}</span>
+                  </p>
+                  <p class="muted small">{{ s.placeName }} (±{{ s.precisionM }} m) · {{ s.sourceDomain }} · {{ s.publishedAt ? ago(s.publishedAt) : '' }}
+                    · <a routerLink="/map" [queryParams]="{ lat: s.latitude, lng: s.longitude }">map</a></p>
+                  <label class="small fix">Type
+                    <select (change)="retype(s, $any($event.target).value)" [attr.aria-label]="'Type for ' + s.title">
+                      @for (t of types; track t.value) { <option [value]="t.value" [selected]="t.value === s.crimeType">{{ t.label }}</option> }
+                    </select>
+                  </label>
+                </div>
+                <div class="acts">
+                  <button class="btn btn-sm btn-ok" type="button" (click)="accept(s)">Accept</button>
+                  <button class="btn btn-sm btn-danger" type="button" (click)="dismiss(s)">Dismiss</button>
+                </div>
+              </li>
+            }
+          </ul>
+        }
+      </section>
+
+      @if (hidden().length) {
+        <section class="panel sugg">
+          <div class="panel-head"><h2>Hidden comments</h2><span class="muted small">Hidden after 3 community flags</span></div>
+          <ul class="queue">
+            @for (c of hidden(); track c.id) {
+              <li>
+                <div class="main"><p class="desc">{{ c.body }}</p>
+                  <p class="muted small">{{ c.flags }} flags · {{ ago(c.createdAt) }} · <a [routerLink]="['/reports', c.reportId]">open report</a></p></div>
+                <div class="acts">
+                  <button class="btn btn-sm btn-ok" type="button" (click)="restoreComment(c.id)">Restore</button>
+                  <button class="btn btn-sm btn-danger" type="button" (click)="deleteComment(c.id)">Delete</button>
+                </div>
+              </li>
+            }
+          </ul>
+        </section>
+      }
 
       <section class="panel">
         <div class="panel-head">
@@ -91,6 +147,14 @@ import { ToastService } from '../core/toast.service';
     .desc { margin: 6px 0 4px; overflow-wrap: anywhere; }
     .acts { display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; }
     .users { margin-top: 24px; }
+    .sugg { margin-bottom: 24px; }
+    .intro { padding: 10px 16px 0; }
+    .headline { font-weight: 600; text-decoration: none; }
+    .headline:hover { text-decoration: underline; }
+    .meta { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin: 6px 0 2px; }
+    .multi { color: var(--safe); font-weight: 600; }
+    .fix { display: inline-flex; gap: 8px; align-items: center; margin-top: 6px; }
+    .fix select { min-height: 34px; padding: 2px 8px; width: auto; }
     .table-wrap { overflow-x: auto; }
     table { width: 100%; border-collapse: collapse; }
     th, td { text-align: left; padding: 10px 16px; border-bottom: 1px solid var(--line); }
@@ -109,12 +173,17 @@ export class Moderation implements OnInit {
   readonly users = signal<User[]>([]);
   readonly loading = signal(true);
   readonly regenerating = signal(false);
+  readonly suggestions = signal<Suggestion[]>([]);
+  readonly hidden = signal<{ id: string; reportId: string; body: string; flags: number; createdAt: string }[]>([]);
+  readonly types = CRIME_TYPES;
+  pct = (x: number) => Math.round(x * 100);
   readonly label = crimeLabel;
   readonly color = crimeColor;
   readonly ago = timeAgo;
 
   ngOnInit(): void {
     this.rt.subscribe(() => this.reloadQueue());
+    this.loadExtras();
     this.api.pendingReports().subscribe({
       next: q => { this.queue.set(q); this.loading.set(false); },
       error: err => { this.toast.error(errorMessage(err)); this.loading.set(false); },
@@ -122,6 +191,44 @@ export class Moderation implements OnInit {
     if (this.auth.isAdmin()) {
       this.api.users().subscribe({ next: u => this.users.set(u), error: err => this.toast.error(errorMessage(err)) });
     }
+  }
+
+  loadExtras(): void {
+    this.api.suggestions().subscribe({ next: s => this.suggestions.set(s), error: () => {} });
+    this.api.hiddenComments().subscribe({ next: h => this.hidden.set(h), error: () => {} });
+  }
+
+  retype(s: Suggestion, t: CrimeType): void {
+    this.suggestions.update(l => l.map(x => x.id === s.id ? { ...x, crimeType: t } : x));
+  }
+
+  accept(s: Suggestion): void {
+    this.api.acceptSuggestion(s.id, { crimeType: s.crimeType }).subscribe({
+      next: () => { this.suggestions.update(l => l.filter(x => x.id !== s.id)); this.toast.ok('Report created from the article.'); },
+      error: err => this.toast.error(errorMessage(err)),
+    });
+  }
+
+  dismiss(s: Suggestion): void {
+    this.api.dismissSuggestion(s.id).subscribe({
+      next: () => { this.suggestions.update(l => l.filter(x => x.id !== s.id)); this.toast.ok('Dismissed. The model will learn from this.'); },
+      error: err => this.toast.error(errorMessage(err)),
+    });
+  }
+
+  refreshSuggestions(): void {
+    this.api.refreshSuggestions().subscribe({
+      next: () => { this.toast.ok('Checking news. New suggestions appear in about a minute.'); setTimeout(() => this.loadExtras(), 60_000); },
+      error: err => this.toast.error(errorMessage(err)),
+    });
+  }
+
+  restoreComment(id: string): void {
+    this.api.setCommentStatus(id, 'VISIBLE').subscribe({ next: () => this.hidden.update(l => l.filter(x => x.id !== id)), error: err => this.toast.error(errorMessage(err)) });
+  }
+
+  deleteComment(id: string): void {
+    this.api.deleteComment(id).subscribe({ next: () => this.hidden.update(l => l.filter(x => x.id !== id)), error: err => this.toast.error(errorMessage(err)) });
   }
 
   reloadQueue(): void {

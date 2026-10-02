@@ -38,6 +38,8 @@ public class PanicService {
         this.shares = shares;
     }
 
+    private static final com.fasterxml.jackson.databind.ObjectMapper JSON = new com.fasterxml.jackson.databind.ObjectMapper();
+
     private static final java.time.format.DateTimeFormatter HHMM =
             java.time.format.DateTimeFormatter.ofPattern("HH:mm").withZone(java.time.ZoneId.of("Africa/Johannesburg"));
 
@@ -140,7 +142,13 @@ public class PanicService {
                 at = live.get().getUpdatedAt();
             }
         }
+        za.co.crimespot.user.EmergencyInfo emergency = null;
+        if (a.getStatus() == PanicStatus.ACTIVE && owner.isEmergencyConsent() && owner.getEmergencyInfoJson() != null) {
+            try {
+                emergency = JSON.readValue(owner.getEmergencyInfoJson(), za.co.crimespot.user.EmergencyInfo.class);
+            } catch (Exception ignored) { }
+        }
         return new AlertDto(a.getId(), owner.getId(), owner.displayName(), owner.getPhone(), a.getStatus(),
-                a.getMessage(), a.getCreatedAt(), a.getResolvedAt(), lat, lng, acc, at);
+                a.getMessage(), a.getCreatedAt(), a.getResolvedAt(), lat, lng, acc, at, emergency);
     }
 }

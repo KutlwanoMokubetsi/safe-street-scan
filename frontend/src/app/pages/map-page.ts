@@ -53,6 +53,8 @@ const CLUSTER_PX = 56;
           </div>
           <p class="desc">{{ r.description }}</p>
           <p class="muted small">{{ r.locationName || 'Pinned location' }} · {{ ago(r.occurredAt) }}</p>
+          @if (r.source === 'NEWS') { <p class="small muted">From the news, checked by a moderator</p> }
+          <a class="btn btn-sm open" [routerLink]="['/reports', r.id]">Details and comments</a>
         </div>
       } @else if (spot(); as h) {
         <div class="sheet" role="dialog" aria-label="Hotspot details">
@@ -107,6 +109,7 @@ const CLUSTER_PX = 56;
     .sheet h2 { font-size: 1.15rem; }
     .risk { font-weight: 600; font-size: 0.9rem; }
     .desc { margin-bottom: 6px; overflow-wrap: anywhere; }
+    .open { margin-top: 10px; }
     .close { position: absolute; top: 8px; right: 10px; width: 36px; height: 36px; border: 0; background: none; font-size: 1.5rem; color: var(--muted); cursor: pointer; }
     @media (max-width: 860px) {
       /* Header (two rows) and the SOS/Report bar take ~170px; dvh follows the browser toolbar. */

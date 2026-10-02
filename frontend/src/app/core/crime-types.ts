@@ -1,4 +1,5 @@
 import { CrimeType } from './models';
+import { t } from './i18n';
 
 export const CRIME_TYPES: { value: CrimeType; label: string; color: string }[] = [
   { value: 'ROBBERY', label: 'Robbery', color: '#C0392B' },
@@ -15,7 +16,8 @@ export const CRIME_TYPES: { value: CrimeType; label: string; color: string }[] =
 
 const byValue = new Map(CRIME_TYPES.map(t => [t.value, t]));
 
-export const crimeLabel = (t?: CrimeType) => (t && byValue.get(t)?.label) || 'Other';
+/** Translated crime type (falls back to English). */
+export const crimeLabel = (c?: CrimeType) => t('crime.' + (c ?? 'OTHER'));
 export const crimeColor = (t?: CrimeType) => (t && byValue.get(t)?.color) || '#5E6873';
 
 export function riskLevel(score: number): { label: string; color: string } {

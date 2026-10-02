@@ -13,8 +13,42 @@ import za.co.crimespot.common.NotFoundException;
 public class MeController {
 
     private final UserRepository users;
+    private final com.fasterxml.jackson.databind.ObjectMapper json;
 
-    public MeController(UserRepository users) { this.users = users; }
+    public MeController(UserRepository users, com.fasterxml.jackson.databind.ObjectMapper json) {
+        this.users = users;
+        this.json = json;
+    }
+
+    public record EmergencyCard(boolean consent, @jakarta.validation.Valid EmergencyInfo info) {}
+
+    @GetMapping("/emergency")
+    public EmergencyCard emergency(@AuthenticationPrincipal AuthUser me) throws Exception {
+        User u = load(me);
+        EmergencyInfo info = u.getEmergencyInfoJson() == null ? null : json.readValue(u.getEmergencyInfoJson(), EmergencyInfo.class);
+        return new EmergencyCard(u.isEmergencyConsent(), info);
+    }
+
+    /** Saved only with explicit consent: it's health information (POPIA special personal information). */
+    @PutMapping("/emergency")
+    public EmergencyCard saveEmergency(@AuthenticationPrincipal AuthUser me, @RequestBody @Valid EmergencyCard body) throws Exception {
+        if (!body.consent()) throw new za.co.crimespot.common.BadRequestException("Tick the box to agree to share this with your friends during an SOS.");
+        if (body.info() == null) throw new za.co.crimespot.common.BadRequestException("Fill in at least one detail.");
+        User u = load(me);
+        u.setEmergencyInfoJson(json.writeValueAsString(body.info()));
+        u.setEmergencyConsent(true);
+        users.save(u);
+        return body;
+    }
+
+    @DeleteMapping("/emergency")
+    @org.springframework.web.bind.annotation.ResponseStatus(org.springframework.http.HttpStatus.NO_CONTENT)
+    public void deleteEmergency(@AuthenticationPrincipal AuthUser me) {
+        User u = load(me);
+        u.setEmergencyInfoJson(null);
+        u.setEmergencyConsent(false);
+        users.save(u);
+    }
 
     public record ProfileUpdate(
             @Size(max = 120) String fullName,

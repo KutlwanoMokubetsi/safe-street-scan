@@ -9,6 +9,7 @@ import { DEFAULT_CENTER, createMap, escapeHtml } from '../core/geo';
 import { LiveService } from '../core/live.service';
 import { FriendEntry, LiveFriend } from '../core/models';
 import { ToastService } from '../core/toast.service';
+import { avatarSrc, initialsOf } from '../core/avatar';
 
 @Component({
   selector: 'app-live-page',
@@ -72,7 +73,10 @@ import { ToastService } from '../core/toast.service';
             @for (f of visible(); track f.userId) {
               <li>
                 <button type="button" (click)="focus(f)" [disabled]="f.latitude == null">
-                  <span class="who">{{ f.name }} @if (f.reason === 'PANIC') { <strong class="sos">SOS</strong> }</span>
+                  <span class="who">
+                    @if (pic(f.avatarUrl); as src) { <img [src]="src" alt="" class="av"> } @else { <span class="av">{{ ini(f.name) }}</span> }
+                    {{ f.name }} @if (f.reason === 'PANIC') { <strong class="sos">SOS</strong> }
+                  </span>
                   <span class="muted small">{{ f.updatedAt ? 'Updated ' + ago(f.updatedAt) : 'Waiting for location' }}</span>
                 </button>
               </li>
@@ -105,7 +109,8 @@ import { ToastService } from '../core/toast.service';
       padding: 10px 2px; background: none; border: 0; border-bottom: 1px solid var(--line);
       font: inherit; color: inherit; text-align: left; cursor: pointer;
     }
-    .who { font-weight: 600; }
+    .who { font-weight: 600; display: flex; align-items: center; gap: 8px; }
+    .av { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; display: grid; place-items: center; background: var(--surface); border: 1px solid var(--line); font-size: .7rem; }
     .sos { color: var(--risk); margin-left: 6px; font-size: 0.8rem; }
     .map { height: 100%; }
     @media (max-width: 860px) {
@@ -128,6 +133,8 @@ export class LivePage implements OnInit, AfterViewInit, OnDestroy {
   readonly friends = signal<FriendEntry[]>([]);
   readonly chosen = signal<Set<string>>(new Set());
   readonly busy = signal(false);
+  readonly pic = avatarSrc;
+  readonly ini = initialsOf;
   minutes: number | null = 60;
   checkIn_: number | null = null;
 

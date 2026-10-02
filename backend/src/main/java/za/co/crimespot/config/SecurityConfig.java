@@ -44,6 +44,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .requestMatchers("/actuator/health", "/api/push/public-key", "/ws").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/avatars/*").permitAll()
                 .anyRequest().authenticated())
             .oauth2ResourceServer(o -> o
                 .jwt(j -> j.decoder(decoder).jwtAuthenticationConverter(converter))

@@ -39,6 +39,17 @@ public class User {
     @Column(name = "alert_radius_m", nullable = false)
     private int alertRadiusM = 0;
 
+    /** Only the token is mapped; image bytes are read on demand by AvatarService. */
+    @Column(name = "avatar_token", insertable = false, updatable = false)
+    private String avatarToken;
+
+    @Column(name = "emergency_info", columnDefinition = "text")
+    @Convert(converter = za.co.crimespot.security.EncryptedStringConverter.class)
+    private String emergencyInfoJson;
+
+    @Column(name = "emergency_consent", nullable = false)
+    private boolean emergencyConsent;
+
     @Column(name = "friend_code", nullable = false, unique = true)
     private String friendCode;
 
@@ -75,6 +86,11 @@ public class User {
     public void setHomeLng(Double v) { this.homeLng = v; }
     public int getAlertRadiusM() { return alertRadiusM; }
     public void setAlertRadiusM(int v) { this.alertRadiusM = v; }
+    public String getAvatarUrl() { return avatarToken == null ? null : "/api/avatars/" + avatarToken; }
+    public String getEmergencyInfoJson() { return emergencyInfoJson; }
+    public void setEmergencyInfoJson(String v) { this.emergencyInfoJson = v; }
+    public boolean isEmergencyConsent() { return emergencyConsent; }
+    public void setEmergencyConsent(boolean v) { this.emergencyConsent = v; }
     public Role getRole() { return role; }
     public void setRole(Role role) { this.role = role; }
     public Instant getCreatedAt() { return createdAt; }

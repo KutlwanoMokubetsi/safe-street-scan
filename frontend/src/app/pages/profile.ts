@@ -5,13 +5,33 @@ import { errorMessage } from '../core/auth.interceptor';
 import { PushService } from '../core/push.service';
 import { ToastService } from '../core/toast.service';
 import { currentPosition } from '../core/geo';
+import { ApiService } from '../core/api.service';
+import { avatarSrc, initialsOf, toSquareJpeg } from '../core/avatar';
+import { I18n, LANGS, TPipe } from '../core/i18n';
+import { RouterLink } from '@angular/router';
 
 @Component({
   selector: 'app-profile',
-  imports: [FormsModule],
+  imports: [FormsModule, TPipe, RouterLink],
   template: `
     <div class="page narrow">
       <div class="page-head"><h1>Profile</h1></div>
+
+      <section class="panel panel-body pic-row">
+        @if (avatar(); as src) { <img [src]="src" alt="Your profile picture" class="big"> }
+        @else { <span class="big initials">{{ ini(auth.user()?.fullName || auth.user()?.email) }}</span> }
+        <div>
+          <h2>Profile picture</h2>
+          <p class="muted small">Only you and your friends can see it.</p>
+          <div class="row">
+            <label class="btn btn-sm" [class.disabled]="picBusy()">
+              {{ picBusy() ? 'Uploading…' : (avatar() ? 'Change picture' : 'Add a picture') }}
+              <input type="file" accept="image/*" (change)="choose($event)" [disabled]="picBusy()" hidden>
+            </label>
+            @if (avatar()) { <button class="btn btn-sm btn-danger" type="button" (click)="removePic()">Remove</button> }
+          </div>
+        </div>
+      </section>
 
       <form class="panel panel-body" (ngSubmit)="save()">
         <h2>About you</h2>
@@ -27,6 +47,24 @@ import { currentPosition } from '../core/geo';
         </div>
         <button class="btn btn-ink" type="submit" [disabled]="saving()">{{ saving() ? 'Saving…' : 'Save changes' }}</button>
       </form>
+
+      <section class="panel panel-body">
+        <h2>{{ 'lang.title' | t }}</h2>
+        <div class="langs" role="radiogroup">
+          @for (l of langs; track l.code) {
+            <button type="button" class="btn btn-sm" [class.btn-ink]="i18n.lang() === l.code" role="radio"
+                    [attr.aria-checked]="i18n.lang() === l.code" (click)="i18n.set(l.code)">{{ l.label }}</button>
+          }
+        </div>
+        @if (i18n.lang() !== 'en') { <p class="muted small hint">{{ 'lang.note' | t }}</p> }
+      </section>
+
+      <section class="panel panel-body">
+        <h2>{{ 'sos.card' | t }}</h2>
+        <p class="muted small">{{ 'sos.cardHint' | t }}</p>
+        <div class="row"><a class="btn btn-sm" routerLink="/emergency-card">{{ 'sos.card' | t }}</a>
+          <a class="btn btn-sm" routerLink="/fake-call">{{ 'sos.fakeCall' | t }}</a></div>
+      </section>
 
       <section class="panel panel-body">
         <h2>Alerts near home</h2>
@@ -92,6 +130,14 @@ import { currentPosition } from '../core/geo';
     .warn { color: #7A1F16; }
     .row { display: flex; gap: 8px; flex-wrap: wrap; }
     .hint { margin: 12px 0 0; }
+    .langs { display: flex; gap: 8px; flex-wrap: wrap; }
+    .pic-row { display: flex; gap: 18px; align-items: center; }
+    .pic-row h2 { margin-bottom: 4px; }
+    .pic-row p { margin-bottom: 10px; }
+    .big { width: 84px; height: 84px; border-radius: 50%; object-fit: cover; flex: none; border: 3px solid var(--vest); }
+    .initials { display: grid; place-items: center; background: var(--ink); color: #fff; font: 700 1.6rem var(--font-head); }
+    label.btn { cursor: pointer; }
+    label.disabled { opacity: .6; pointer-events: none; }
     .legal { margin: 16px 0 0; }
   `,
 })
@@ -102,6 +148,12 @@ export class Profile implements OnInit {
 
   readonly saving = signal(false);
   readonly homeBusy = signal(false);
+  readonly picBusy = signal(false);
+  protected i18n = inject(I18n);
+  readonly langs = LANGS;
+  private api = inject(ApiService);
+  readonly ini = initialsOf;
+  avatar() { return avatarSrc(this.auth.user()?.avatarUrl); }
   name = '';
   phone = '';
 
@@ -117,6 +169,32 @@ export class Profile implements OnInit {
     this.auth.updateProfile({ fullName: this.name, phone: this.phone }).subscribe({
       next: u => { this.auth.user.set(u); this.saving.set(false); this.toast.ok('Profile saved.'); },
       error: err => { this.saving.set(false); this.toast.error(errorMessage(err)); },
+    });
+  }
+
+  async choose(e: Event): Promise<void> {
+    const input = e.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+    if (file.size > 25 * 1024 * 1024) return this.toast.error('That picture is too large.');
+    this.picBusy.set(true);
+    try {
+      const jpeg = await toSquareJpeg(file);
+      this.api.uploadAvatar(jpeg).subscribe({
+        next: r => { this.auth.user.update(u => (u ? { ...u, avatarUrl: r.avatarUrl } : u)); this.picBusy.set(false); this.toast.ok('Picture updated.'); },
+        error: err => { this.picBusy.set(false); this.toast.error(errorMessage(err, "Couldn't upload the picture.")); },
+      });
+    } catch {
+      this.picBusy.set(false);
+      this.toast.error("That file couldn't be read as a picture. Try a JPEG or PNG.");
+    }
+  }
+
+  removePic(): void {
+    this.api.removeAvatar().subscribe({
+      next: () => { this.auth.user.update(u => (u ? { ...u, avatarUrl: undefined } : u)); this.toast.ok('Picture removed.'); },
+      error: err => this.toast.error(errorMessage(err)),
     });
   }
 

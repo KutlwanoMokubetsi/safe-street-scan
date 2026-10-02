@@ -50,6 +50,43 @@ public class NewsService {
 
     private final Map<String, Cached<String>> areas = new ConcurrentHashMap<>();
     private final Map<String, Cached<List<Item>>> news = new ConcurrentHashMap<>();
+    private final Map<String, Long> requestedAreas = new ConcurrentHashMap<>();
+    private final Map<String, Cached<Optional<Place>>> places = new ConcurrentHashMap<>();
+
+    /** A geocoded place and how precise it is (half the diagonal of its bounding box). */
+    public record Place(double lat, double lng, int precisionMeters) {}
+    public record PlaceResult(String name, String detail, double lat, double lng) {}
+    private final Map<String, Cached<List<PlaceResult>>> searches = new ConcurrentHashMap<>();
+
+    /** Address and place search within South Africa for the safe-route destination box. */
+    public List<PlaceResult> search(String q) {
+        String key = q.trim().toLowerCase(Locale.ROOT);
+        if (key.length() < 3) return List.of();
+        Cached<List<PlaceResult>> c = searches.get(key);
+        if (c != null && c.expiresAt() > System.currentTimeMillis()) return c.value();
+        if (!throttle(nominatimLock, () -> lastNominatim, 1_100, 4)) return c != null ? c.value() : List.of();
+        List<PlaceResult> out = new ArrayList<>();
+        try {
+            lastNominatim = System.currentTimeMillis();
+            JsonNode arr = json.readTree(get("https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&countrycodes=za&accept-language=en&q="
+                    + URLEncoder.encode(q.trim(), StandardCharsets.UTF_8)));
+            for (JsonNode r : arr) {
+                String full = r.path("display_name").asText();
+                int comma = full.indexOf(',');
+                String name = r.hasNonNull("name") && !r.get("name").asText().isBlank() ? r.get("name").asText() : (comma > 0 ? full.substring(0, comma) : full);
+                String detail = comma > 0 ? full.substring(comma + 1).trim() : "";
+                if (detail.length() > 80) detail = detail.substring(0, 80) + "…";
+                out.add(new PlaceResult(name, detail, r.path("lat").asDouble(), r.path("lon").asDouble()));
+            }
+        } catch (Exception e) {
+            log.debug("Place search failed: {}", e.getMessage());
+        } finally {
+            nominatimLock.unlock();
+        }
+        bound(searches);
+        searches.put(key, new Cached<>(out, System.currentTimeMillis() + 86_400_000L));
+        return out;
+    }
     private final ReentrantLock nominatimLock = new ReentrantLock(), gdeltLock = new ReentrantLock(), googleLock = new ReentrantLock();
     private volatile long lastNominatim, lastGdelt, lastGoogle;
 
@@ -61,7 +98,54 @@ public class NewsService {
 
     public News forLocation(Double lat, Double lng) {
         String area = (lat == null || lng == null) ? "Johannesburg" : areaName(lat, lng);
+        requestedAreas.put(area, System.currentTimeMillis());
         return new News(area, headlines(area));
+    }
+
+    /** Areas people looked at in the last {@code hours}, most recent first. */
+    public List<String> recentAreas(int hours, int max) {
+        long since = System.currentTimeMillis() - hours * 3_600_000L;
+        return requestedAreas.entrySet().stream().filter(e -> e.getValue() >= since)
+                .sorted(Map.Entry.<String, Long>comparingByValue().reversed()).limit(max).map(Map.Entry::getKey).toList();
+    }
+
+    public List<Item> headlinesFor(String area) { return headlines(area); }
+
+    /**
+     * Forward geocoding within South Africa (Nominatim, same 1 request/second limit, results cached 7 days).
+     * Returns empty for anything not found, or too vague to place on a map (bigger than ~6 km across).
+     */
+    public Optional<Place> geocode(String place, String area) {
+        String key = (place + "|" + area).toLowerCase(Locale.ROOT);
+        Cached<Optional<Place>> c = places.get(key);
+        if (c != null && c.expiresAt() > System.currentTimeMillis()) return c.value();
+        Optional<Place> result = Optional.empty();
+        if (throttle(nominatimLock, () -> lastNominatim, 1_100, 5)) {
+            try {
+                lastNominatim = System.currentTimeMillis();
+                JsonNode arr = json.readTree(get("https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=za&accept-language=en&q="
+                        + URLEncoder.encode(place + ", " + area, StandardCharsets.UTF_8)));
+                if (arr.isArray() && !arr.isEmpty()) {
+                    JsonNode r = arr.get(0), bb = r.path("boundingbox");
+                    double s = bb.get(0).asDouble(), n = bb.get(1).asDouble(), w = bb.get(2).asDouble(), e = bb.get(3).asDouble();
+                    double diag = za.co.crimespot.hotspot.HotspotDetector.distanceMeters(s, w, n, e);
+                    if (diag <= 6_000) {
+                        result = Optional.of(new Place(r.path("lat").asDouble(), r.path("lon").asDouble(),
+                                (int) Math.max(100, Math.min(3_000, diag / 2))));
+                    }
+                }
+            } catch (Exception ex) {
+                log.debug("Geocoding failed: {}", ex.getMessage());
+                nominatimLock.unlock();
+                return Optional.empty(); // don't cache transient failures
+            }
+            nominatimLock.unlock();
+        } else {
+            return Optional.empty();
+        }
+        bound(places);
+        places.put(key, new Cached<>(result, System.currentTimeMillis() + AREA_TTL));
+        return result;
     }
 
     // ---------- area ----------

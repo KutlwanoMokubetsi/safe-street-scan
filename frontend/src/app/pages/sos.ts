@@ -6,43 +6,43 @@ import { errorMessage } from '../core/auth.interceptor';
 import { currentPosition } from '../core/geo';
 import { LiveService } from '../core/live.service';
 import { ToastService } from '../core/toast.service';
+import { TPipe, t } from '../core/i18n';
 
 const HOLD_MS = 3000;
 
 @Component({
   selector: 'app-sos',
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, TPipe],
   template: `
     <div class="page narrow">
       @if (live.myAlert(); as alert) {
         <section class="active" role="alert">
-          <h1>Alert sent</h1>
-          <p>Your friends have been notified and can see where you are. Keep CrimeSpot open so your location keeps updating.</p>
+          <h1>{{ 'sos.sent' | t }}</h1>
+          <p>{{ 'sos.sentText' | t }}</p>
           @if (live.gpsError()) { <p class="gps">{{ live.gpsError() }}</p> }
           @if (live.lastSentAt(); as t) { <p class="small">Location last sent at {{ t.toLocaleTimeString('en-ZA') }}</p> }
         </section>
 
         <div class="calls">
-          <a class="call primary" href="tel:10111"><strong>10111</strong><span>Police (SAPS)</span></a>
-          <a class="call" href="tel:112"><strong>112</strong><span>Emergency from a cellphone</span></a>
-          <a class="call" href="tel:10177"><strong>10177</strong><span>Ambulance</span></a>
+          <a class="call primary" href="tel:10111"><strong>10111</strong><span>{{ 'sos.police' | t }}</span></a>
+          <a class="call" href="tel:112"><strong>112</strong><span>{{ 'sos.cell' | t }}</span></a>
+          <a class="call" href="tel:10177"><strong>10177</strong><span>{{ 'sos.ambulance' | t }}</span></a>
         </div>
 
         <button class="btn safe" type="button" (click)="resolve(alert.id)" [disabled]="busy()">
-          I'm safe. End the alert.
+          {{ 'sos.safe' | t }}
         </button>
       } @else {
         <div class="page-head">
           <div>
-            <h1>Emergency SOS</h1>
-            <p class="muted">Hold the button for 3 seconds. Your friends get an urgent alert with your live location.</p>
+            <h1>{{ 'sos.title' | t }}</h1>
+            <p class="muted">{{ 'sos.intro' | t }}</p>
           </div>
         </div>
 
         @if (friendCount() === 0) {
           <p class="nofriends">
-            You haven't added any friends yet, so an alert would reach no one.
-            <a routerLink="/friends">Add friends</a>, and call 10111 if you're in danger now.
+            {{ 'sos.noFriends' | t }} <a routerLink="/friends">{{ 'sos.addFriends' | t }}</a>
           </p>
         }
 
@@ -55,27 +55,32 @@ const HOLD_MS = 3000;
                   (contextmenu)="$event.preventDefault()"
                   [disabled]="busy()" aria-describedby="hold-help">
             <span class="ring" aria-hidden="true"></span>
-            <span class="label">{{ busy() ? 'Sending…' : holding() ? 'Keep holding' : 'Hold for SOS' }}</span>
+            <span class="label">{{ busy() ? ('sos.sending' | t) : holding() ? ('sos.keepHolding' | t) : ('sos.hold' | t) }}</span>
           </button>
-          <p id="hold-help" class="muted small">Let go to cancel.</p>
+          <p id="hold-help" class="muted small">{{ 'sos.letGo' | t }}</p>
         </div>
 
         @if (smsLink()) {
           <div class="fallback" role="alert">
-            <p><strong>The alert didn't go through.</strong> Text your friends your location instead:</p>
-            <a class="btn sms" [href]="smsLink()">Send SMS to {{ contacts().length }} {{ contacts().length === 1 ? 'friend' : 'friends' }}</a>
+            <p><strong>{{ 'sos.failed' | t }}</strong></p>
+            <a class="btn sms" [href]="smsLink()">{{ 'sos.sendSms' | t }} ({{ contacts().length }})</a>
           </div>
         }
 
         <details class="msg">
-          <summary>Add a short message (optional)</summary>
+          <summary>{{ 'sos.message' | t }}</summary>
           <input [(ngModel)]="message" maxlength="280" placeholder="e.g. Car broke down on N1 near Midrand">
         </details>
 
         <div class="calls">
-          <a class="call primary" href="tel:10111"><strong>10111</strong><span>Police (SAPS)</span></a>
-          <a class="call" href="tel:112"><strong>112</strong><span>Emergency from a cellphone</span></a>
-          <a class="call" href="tel:10177"><strong>10177</strong><span>Ambulance</span></a>
+          <a class="call primary" href="tel:10111"><strong>10111</strong><span>{{ 'sos.police' | t }}</span></a>
+          <a class="call" href="tel:112"><strong>112</strong><span>{{ 'sos.cell' | t }}</span></a>
+          <a class="call" href="tel:10177"><strong>10177</strong><span>{{ 'sos.ambulance' | t }}</span></a>
+        </div>
+
+        <div class="tools">
+          <a class="tool" routerLink="/fake-call"><strong>{{ 'sos.fakeCall' | t }}</strong><span>{{ 'sos.fakeCallHint' | t }}</span></a>
+          <a class="tool" routerLink="/emergency-card"><strong>{{ 'sos.card' | t }}</strong><span>{{ 'sos.cardHint' | t }}</span></a>
         </div>
       }
     </div>
@@ -118,6 +123,9 @@ const HOLD_MS = 3000;
     .fallback { background: #FDECEA; border: 1px solid #F3C2BD; border-radius: var(--radius-m); padding: 14px; margin-bottom: 20px; }
     .fallback p { margin-bottom: 10px; }
     .sms { width: 100%; background: var(--ink); color: #fff; border-color: var(--ink); }
+    .tools { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 20px; }
+    .tool { display: flex; flex-direction: column; gap: 2px; padding: 12px; border-radius: var(--radius-m); background: var(--ink); color: #fff; text-decoration: none; }
+    .tool span { font-size: .8rem; color: #C9D1D9; }
     .safe { width: 100%; min-height: 52px; background: var(--safe); color: #fff; border-color: #24654A; font-size: 1.05rem; }
     @media (max-width: 480px) { .calls { grid-template-columns: 1fr; } }
   `,
@@ -234,7 +242,7 @@ export class Sos implements OnInit, OnDestroy {
   }
 
   resolve(id: string): void {
-    if (!confirm('End the alert and let your friends know you are safe?')) return;
+    if (!confirm(t('sos.confirmSafe'))) return;
     this.busy.set(true);
     this.api.resolvePanic(id).subscribe({
       next: () => { this.busy.set(false); this.live.refresh(); this.toast.ok('Alert ended. Your friends know you are safe.'); },

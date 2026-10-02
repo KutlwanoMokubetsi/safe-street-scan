@@ -44,6 +44,16 @@ public class CrimeReport {
     @Column(name = "reviewed_at")
     private Instant reviewedAt;
 
+    /** USER, or NEWS for a moderator-approved news suggestion. */
+    @Column(nullable = false)
+    private String source = "USER";
+
+    @Column(name = "source_url", columnDefinition = "text")
+    private String sourceUrl;
+
+    @Column(name = "source_name")
+    private String sourceName;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -77,5 +87,11 @@ public class CrimeReport {
     public void setReviewedBy(UUID reviewedBy) { this.reviewedBy = reviewedBy; }
     public Instant getReviewedAt() { return reviewedAt; }
     public void setReviewedAt(Instant reviewedAt) { this.reviewedAt = reviewedAt; }
+    public String getSource() { return source; }
+    public void setSource(String v) { this.source = v; }
+    public String getSourceUrl() { return sourceUrl; }
+    public void setSourceUrl(String v) { this.sourceUrl = v; }
+    public String getSourceName() { return sourceName; }
+    public void setSourceName(String v) { this.sourceName = v; }
     public Instant getCreatedAt() { return createdAt; }
 }

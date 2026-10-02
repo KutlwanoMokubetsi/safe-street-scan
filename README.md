@@ -60,6 +60,7 @@ Push notifications only work in production builds (`npx ng build` and serve `dis
 | `CORS_ALLOWED_ORIGINS` | Comma-separated web origins |
 | `ADMIN_EMAIL` | Becomes admin on first verified sign-in |
 | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` | `npx web-push generate-vapid-keys`; subject like `mailto:you@example.com` |
+| `ORS_API_KEY` | Optional. openrouteservice key for true hotspot avoidance in safe routes |
 | `DATA_ENCRYPTION_KEY` | **Required.** `openssl rand -base64 32`. Keep a safe copy |
 
 **Keycloak** (`keycloak/`)
@@ -101,6 +102,13 @@ The realm in `keycloak/realm/` is imported **only the first time** Keycloak star
 | GET | `/api/panic/{id}` | Owner or their friends |
 | GET | `/api/push/public-key` | Public |
 | POST | `/api/push/subscribe`, `/api/push/unsubscribe` | Signed in |
+
+## Safety tools
+
+- **Safe routes** (`POST /api/routes`): fastest route plus a safer one that spends less distance in hotspots (metres inside × intensity, ×1.5 during a hotspot's peak hours). Set `ORS_API_KEY` (free at openrouteservice.org) to plan around hotspots directly; without it, OSRM alternatives and detours beside the worst hotspot are compared. "Share my trip" starts live sharing with a check-in deadline of trip time + 15 min.
+- **Fake call** (`/fake-call`): full-screen incoming call with a synthesised ringtone, vibration and a spoken line in the chosen language. Web apps can only ring while open.
+- **Emergency card** (`/emergency-card`): blood type, allergies, medication, medical aid, emergency contact. Encrypted; saved only with explicit consent; shown to friends only while that person's SOS is active.
+- **Languages:** English, Afrikaans, isiZulu, isiXhosa (`frontend/src/app/core/i18n.ts`, one row per string). **Non-English text must be reviewed by native speakers before launch, starting with `sos.*` and `alert.*`.** Missing strings fall back to English. Server messages and notifications are English for now.
 
 ## Capacity and resource use
 

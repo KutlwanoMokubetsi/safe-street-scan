@@ -26,13 +26,15 @@ public class ReportService {
     private final za.co.crimespot.realtime.RealtimeHub hub;
     private final AreaAlertService areaAlerts;
     private final za.co.crimespot.common.ReadCache cache;
+    private final za.co.crimespot.moderation.ContentFilter filter;
 
     public ReportService(CrimeReportRepository reports, za.co.crimespot.realtime.RealtimeHub hub, AreaAlertService areaAlerts,
-                         za.co.crimespot.common.ReadCache cache) {
+                         za.co.crimespot.common.ReadCache cache, za.co.crimespot.moderation.ContentFilter filter) {
         this.reports = reports;
         this.hub = hub;
         this.areaAlerts = areaAlerts;
         this.cache = cache;
+        this.filter = filter;
     }
 
     public record CreateCommand(CrimeType crimeType, String description, String locationName,
@@ -50,11 +52,16 @@ public class ReportService {
         if (reports.countByUserIdAndCreatedAtAfter(me.id(), now.minus(Duration.ofHours(1))) >= MAX_REPORTS_PER_HOUR) {
             throw new BadRequestException("You've sent a lot of reports in the past hour. Try again later.");
         }
+        var desc = filter.check(cmd.description());
+        if (desc.blocked()) throw new BadRequestException(desc.reason());
+        var place = filter.check(cmd.locationName());
+        if (place.blocked()) throw new BadRequestException(place.reason());
+
         CrimeReport r = new CrimeReport();
         r.setUserId(me.id());
         r.setCrimeType(cmd.crimeType());
-        r.setDescription(cmd.description().trim());
-        r.setLocationName(cmd.locationName() == null ? null : cmd.locationName().trim());
+        r.setDescription(desc.text());
+        r.setLocationName(place.text() == null || place.text().isBlank() ? null : place.text());
         r.setLatitude(cmd.latitude());
         r.setLongitude(cmd.longitude());
         r.setOccurredAt(cmd.occurredAt());
@@ -83,6 +90,39 @@ public class ReportService {
         int n = Math.max(1, Math.min(limit, 50));
         return cache.get("recent:" + n, "reports",
                 () -> reports.findByStatusInOrderByOccurredAtDesc(VISIBLE, PageRequest.of(0, n)));
+    }
+
+    /** One report, for its detail page. Rejected reports are only visible to their author and moderators. */
+    public CrimeReport get(AuthUser me, UUID id) {
+        CrimeReport r = reports.findById(id).orElseThrow(() -> new NotFoundException("Report not found"));
+        if (r.getStatus() == ReportStatus.REJECTED && !me.canModerate() && !r.getUserId().equals(me.id())) {
+            throw new NotFoundException("Report not found");
+        }
+        return r;
+    }
+
+    /** Creates a VERIFIED report from a news suggestion a moderator accepted. */
+    @Transactional
+    public CrimeReport createFromNews(AuthUser moderator, CrimeType type, String title, String place,
+                                      double lat, double lng, Instant occurredAt, String url, String sourceName) {
+        CrimeReport r = new CrimeReport();
+        r.setUserId(moderator.id());
+        r.setCrimeType(type);
+        r.setDescription(title.length() > 1900 ? title.substring(0, 1900) : title);
+        r.setLocationName(place);
+        r.setLatitude(lat);
+        r.setLongitude(lng);
+        r.setOccurredAt(occurredAt);
+        r.setStatus(ReportStatus.VERIFIED);
+        r.setReviewedBy(moderator.id());
+        r.setReviewedAt(Instant.now());
+        r.setSource("NEWS");
+        r.setSourceUrl(url);
+        r.setSourceName(sourceName);
+        CrimeReport saved = reports.save(r);
+        hub.toAll("reports");
+        afterCommit(() -> areaAlerts.notifyNearby(saved.getId()));
+        return saved;
     }
 
     public List<CrimeReport> mine(AuthUser me) {

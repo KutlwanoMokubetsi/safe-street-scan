@@ -9,33 +9,34 @@
     </a>
 
     <nav class="nav" aria-label="Main">
-      <a routerLink="/" routerLinkActive="on" [routerLinkActiveOptions]="{ exact: true }">Overview</a>
-      <a routerLink="/map" routerLinkActive="on">Map</a>
-      <a routerLink="/live" routerLinkActive="on">Live</a>
-      <a routerLink="/friends" routerLinkActive="on">Friends</a>
-      <a routerLink="/my-reports" routerLinkActive="on">My reports</a>
+      <a routerLink="/" routerLinkActive="on" [routerLinkActiveOptions]="{ exact: true }">{{ 'nav.overview' | t }}</a>
+      <a routerLink="/map" routerLinkActive="on">{{ 'nav.map' | t }}</a>
+      <a routerLink="/route" routerLinkActive="on">{{ 'nav.route' | t }}</a>
+      <a routerLink="/live" routerLinkActive="on">{{ 'nav.live' | t }}</a>
+      <a routerLink="/friends" routerLinkActive="on">{{ 'nav.friends' | t }}</a>
+      <a routerLink="/my-reports" routerLinkActive="on">{{ 'nav.myReports' | t }}</a>
       @if (auth.canModerate()) {
-        <a routerLink="/moderate" routerLinkActive="on">Review</a>
+        <a routerLink="/moderate" routerLinkActive="on">{{ 'nav.review' | t }}</a>
       }
     </nav>
 
     <div class="right">
       <a routerLink="/sos" class="btn sos-btn">SOS</a>
-      <a routerLink="/report" class="btn btn-vest report-btn">Report incident</a>
+      <a routerLink="/report" class="btn btn-vest report-btn">{{ 'nav.report' | t }}</a>
       <a routerLink="/profile" class="avatar" [attr.aria-label]="'Your profile. ' + (realtime.connected() ? 'Live updates on' : 'Connecting')">
-        {{ initials() }}<span class="conn" [class.on]="realtime.connected()" aria-hidden="true"></span>
+        @if (avatar()) { <img [src]="avatar()" alt="" class="pic"> } @else { {{ initials() }} }<span class="conn" [class.on]="realtime.connected()" aria-hidden="true"></span>
       </a>
     </div>
   </header>
 
   @if (!online()) {
-    <div class="offline" role="status">You're offline. Showing saved data. SOS will offer to text your friends.</div>
+    <div class="offline" role="status">{{ 'common.offline' | t }}</div>
   }
 
   @for (a of live.friendAlerts(); track a.id) {
     <a class="alert-banner" [routerLink]="['/alerts', a.id]" role="alert">
-      <strong>{{ a.name }} needs help.</strong>
-      <span>Tap to see where they are</span>
+      <strong>{{ 'alert.needsHelp' | t: { name: a.name } }}.</strong>
+      <span>{{ 'alert.tapToSee' | t }}</span>
     </a>
   }
 
@@ -44,11 +45,11 @@
       <span class="dot" aria-hidden="true"></span>
       <span class="txt">{{ shareText() }}</span>
       @if (live.myAlert()) {
-        <button type="button" (click)="openMyAlert()">View</button>
+        <button type="button" (click)="openMyAlert()">{{ 'live.view' | t }}</button>
       } @else if (live.state()?.myShare?.checkinDueAt) {
-        <button type="button" class="arrived" (click)="checkIn()">I've arrived</button>
+        <button type="button" class="arrived" (click)="checkIn()">{{ 'live.arrived' | t }}</button>
       } @else {
-        <button type="button" (click)="stopSharing()">Stop</button>
+        <button type="button" (click)="stopSharing()">{{ 'live.stop' | t }}</button>
       }
     </div>
   }
@@ -62,7 +63,7 @@
   <div class="bottom-bar">
     <a routerLink="/sos" class="sos-half" aria-label="Emergency SOS">SOS</a>
     <a routerLink="/report" class="report-half" aria-label="Report an incident">
-      <span class="stripe" aria-hidden="true"></span>Report
+      <span class="stripe" aria-hidden="true"></span>{{ 'nav.reportShort' | t }}
     </a>
   </div>
 }

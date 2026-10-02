@@ -60,6 +60,10 @@ app:
     public-key: ${VAPID_PUBLIC_KEY:}
     private-key: ${VAPID_PRIVATE_KEY:}
     subject: ${VAPID_SUBJECT:mailto:admin@example.com}
+  routing:
+    # Optional free key from openrouteservice.org: enables true hotspot avoidance. Without it,
+    # routes come from the public OSRM servers and the least-exposed alternative is chosen.
+    ors-key: ${ORS_API_KEY:}
   hotspots:
     lookback-days: 30
     min-reports: 3

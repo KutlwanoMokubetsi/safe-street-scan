@@ -47,6 +47,11 @@ public class ReportController {
         return service.recent(limit).stream().map(r -> ReportDto.from(r, me.id())).toList();
     }
 
+    @GetMapping("/{id}")
+    public ReportDto one(@AuthenticationPrincipal AuthUser me, @PathVariable UUID id) {
+        return ReportDto.from(service.get(me, id), me.id());
+    }
+
     @GetMapping("/mine")
     public List<ReportDto> mine(@AuthenticationPrincipal AuthUser me) {
         return service.mine(me).stream().map(r -> ReportDto.from(r, me.id())).toList();

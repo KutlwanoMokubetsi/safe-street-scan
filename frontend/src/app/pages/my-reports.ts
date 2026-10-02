@@ -43,7 +43,7 @@ import { ToastService } from '../core/toast.service';
                   </p>
                 </div>
                 <div class="acts">
-                  <a class="btn btn-sm" routerLink="/map" [queryParams]="{ lat: r.latitude, lng: r.longitude }">View on map</a>
+                  <a class="btn btn-sm" [routerLink]="['/reports', r.id]">Details</a>
                   @if (r.status === 'PENDING') {
                     <button class="btn btn-sm btn-danger" type="button" (click)="remove(r)">Delete</button>
                   }

@@ -1,7 +1,7 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { environment } from '../../environments/environment';
-import { Alert, Bounds, News, FriendsOverview, Hotspot, Live, NewReport, Report, ReportStatus, Role, Share, Stats, User } from './models';
+import { Alert, Bounds, CommentItem, EmergencyInfo, News, PlaceResult, RoutePlan, Suggestion, FriendsOverview, Hotspot, Live, NewReport, Report, ReportStatus, Role, Share, Stats, User } from './models';
 
 @Injectable({ providedIn: 'root' })
 export class ApiService {
@@ -62,6 +62,44 @@ export class ApiService {
   }
   resolvePanic(id: string) { return this.http.post<Alert>(`${this.base}/panic/${id}/resolve`, {}); }
   alert(id: string) { return this.http.get<Alert>(`${this.base}/panic/${id}`); }
+
+  // ---- Report detail & comments ----
+  report(id: string) { return this.http.get<Report>(`${this.base}/reports/${id}`); }
+  comments(reportId: string) { return this.http.get<CommentItem[]>(`${this.base}/reports/${reportId}/comments`); }
+  postComment(reportId: string, body: string) {
+    return this.http.post<{ comment: CommentItem; notice?: string }>(`${this.base}/reports/${reportId}/comments`, { body });
+  }
+  flagComment(id: string) { return this.http.post<void>(`${this.base}/comments/${id}/flag`, {}); }
+  deleteComment(id: string) { return this.http.delete<void>(`${this.base}/comments/${id}`); }
+  setCommentStatus(id: string, status: 'VISIBLE' | 'HIDDEN') { return this.http.patch<void>(`${this.base}/comments/${id}`, { status }); }
+  hiddenComments() { return this.http.get<{ id: string; reportId: string; body: string; flags: number; createdAt: string }[]>(`${this.base}/comments/hidden`); }
+
+  // ---- Profile picture ----
+  uploadAvatar(jpeg: Blob) {
+    return this.http.put<{ avatarUrl: string }>(`${this.base}/me/avatar`, jpeg, { headers: { 'Content-Type': 'image/jpeg' } });
+  }
+  removeAvatar() { return this.http.delete<void>(`${this.base}/me/avatar`); }
+
+  // ---- News suggestions (moderators) ----
+  suggestions() { return this.http.get<Suggestion[]>(`${this.base}/suggestions`); }
+  acceptSuggestion(id: string, body: Partial<Pick<Suggestion, 'crimeType' | 'placeName'>> = {}) {
+    return this.http.post<Suggestion>(`${this.base}/suggestions/${id}/accept`, body);
+  }
+  dismissSuggestion(id: string) { return this.http.post<void>(`${this.base}/suggestions/${id}/dismiss`, {}); }
+  refreshSuggestions() { return this.http.post<{ status: string }>(`${this.base}/suggestions/refresh`, {}); }
+
+  // ---- Safe routes ----
+  routes(from: [number, number], to: [number, number], walk: boolean) {
+    return this.http.post<RoutePlan>(`${this.base}/routes`, {
+      from: { lat: from[0], lng: from[1] }, to: { lat: to[0], lng: to[1] }, walk,
+    });
+  }
+  places(q: string) { return this.http.get<PlaceResult[]>(`${this.base}/places`, { params: { q } }); }
+
+  // ---- Emergency card ----
+  emergencyCard() { return this.http.get<{ consent: boolean; info: EmergencyInfo | null }>(`${this.base}/me/emergency`); }
+  saveEmergencyCard(info: EmergencyInfo) { return this.http.put<unknown>(`${this.base}/me/emergency`, { consent: true, info }); }
+  deleteEmergencyCard() { return this.http.delete<void>(`${this.base}/me/emergency`); }
 
   // ---- Local news ----
   news(pos: [number, number] | null) {

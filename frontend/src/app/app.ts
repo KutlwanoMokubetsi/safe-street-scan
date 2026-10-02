@@ -7,10 +7,12 @@ import { PushService } from './core/push.service';
 import { RealtimeService } from './core/realtime.service';
 import { ToastService } from './core/toast.service';
 import { errorMessage } from './core/auth.interceptor';
+import { avatarSrc } from './core/avatar';
+import { TPipe, t as tr } from './core/i18n';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, TPipe],
   templateUrl: './app.html',
   styleUrl: './app.css',
 })
@@ -24,6 +26,8 @@ export class App implements OnInit {
   private api = inject(ApiService);
   private router = inject(Router);
 
+  protected readonly avatar = computed(() => avatarSrc(this.auth.user()?.avatarUrl));
+
   protected readonly initials = computed(() => {
     const u = this.auth.user();
     const src = u?.fullName || u?.email || '?';
@@ -33,7 +37,7 @@ export class App implements OnInit {
   protected readonly shareText = computed(() => {
     const s = this.live.state();
     if (!s?.sharing) return '';
-    if (s.myAlert) return 'Emergency alert active. Friends can see where you are.';
+    if (s.myAlert) return tr('live.emergencyActive');
     const share = s.myShare;
     if (!share) return 'Sharing your location';
     const n = share.viewerIds.length;

@@ -1,5 +1,7 @@
 import { Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { I18n, LANGS, Lang, TPipe } from '../core/i18n';
+import { inject } from '@angular/core';
 
 const PHONE_DISPLAY = '073 870 3986';
 const PHONE_INTL = '27738703986';
@@ -7,7 +9,7 @@ const EMAIL = 'kutlwanomokubetsi@gmail.com';
 
 @Component({
   selector: 'app-welcome',
-  imports: [RouterLink],
+  imports: [RouterLink, TPipe],
   template: `
     <header class="top">
       <a href="/" class="brand" aria-label="CrimeSpot home">
@@ -22,16 +24,18 @@ const EMAIL = 'kutlwanomokubetsi@gmail.com';
         <a href="#how">How it works</a>
         <a href="#contact">Contact</a>
       </nav>
-      <a class="signin" routerLink="/login">Sign in</a>
+      <select class="lang" [value]="i18n.lang()" (change)="i18n.set($any($event.target).value)" [attr.aria-label]="'lang.title' | t">
+        @for (l of langs; track l.code) { <option [value]="l.code" [selected]="l.code === i18n.lang()">{{ l.label }}</option> }
+      </select>
+      <a class="signin" routerLink="/login">{{ 'welcome.signin' | t }}</a>
     </header>
 
     <section class="hero">
       <div class="hero-text">
-        <h1>Know what's happening on your street.</h1>
-        <p class="lede">Report crime, see where it's clustering, share your live location with people you trust,
-          and alert them with one button when you're in danger.</p>
+        <h1>{{ 'welcome.headline' | t }}</h1>
+        <p class="lede">{{ 'welcome.lede' | t }}</p>
         <div class="ctas">
-          <a class="btn btn-vest" routerLink="/login">Get started</a>
+          <a class="btn btn-vest" routerLink="/login">{{ 'welcome.start' | t }}</a>
           <a class="btn ghost" href="#features">See what it does</a>
         </div>
         <p class="fine">Free to use. Other users never see who made a report.</p>
@@ -147,8 +151,10 @@ const EMAIL = 'kutlwanomokubetsi@gmail.com';
     .top nav { display: flex; gap: 20px; }
     .top nav a { color: #C9D1D9; text-decoration: none; font-weight: 500; }
     .top nav a:hover { color: #fff; }
+    .lang { margin-left: auto; width: auto; min-height: 40px; padding: 6px 10px; background: transparent; color: #fff; border-color: #4A5868; }
+    .lang option { color: var(--ink); }
     .signin {
-      margin-left: auto; background: none; color: #fff; border: 1px solid #4A5868; border-radius: var(--radius-s);
+      background: none; color: #fff; border: 1px solid #4A5868; border-radius: var(--radius-s);
       font: 600 0.95rem var(--font-body); padding: 8px 16px; min-height: 40px; cursor: pointer;
       text-decoration: none; display: inline-flex; align-items: center;
     }
@@ -227,6 +233,8 @@ const EMAIL = 'kutlwanomokubetsi@gmail.com';
   `,
 })
 export class Welcome {
+  protected i18n = inject(I18n);
+  protected readonly langs = LANGS;
   protected readonly phone = PHONE_DISPLAY;
   protected readonly phoneIntl = PHONE_INTL;
   protected readonly email = EMAIL;

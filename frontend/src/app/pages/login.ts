@@ -1,10 +1,11 @@
 import { Component, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../core/auth.service';
+import { TPipe } from '../core/i18n';
 
 @Component({
   selector: 'app-login',
-  imports: [RouterLink],
+  imports: [RouterLink, TPipe],
   template: `
     <div class="wrap">
       <a routerLink="/welcome" class="brand" aria-label="CrimeSpot home">
@@ -16,7 +17,7 @@ import { AuthService } from '../core/auth.service';
       </a>
 
       <main class="panel panel-body box">
-        <h1>Sign in</h1>
+        <h1>{{ 'welcome.signin' | t }}</h1>
         <p class="muted">New here? The same buttons create your account.</p>
 
         <button class="btn google" type="button" (click)="auth.loginWithGoogle()">
@@ -26,13 +27,13 @@ import { AuthService } from '../core/auth.service';
             <path fill="#FBBC05" d="M10.6 28.6c-.5-1.4-.8-3-.8-4.6s.3-3.2.8-4.6l-7.9-6.1C1 16.6 0 20.2 0 24s1 7.4 2.7 10.7l7.9-6.1z"/>
             <path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.8-5.8l-7.4-5.7c-2.1 1.4-4.8 2.3-8.4 2.3-6.2 0-11.5-4.1-13.4-9.9l-7.9 6.1C6.6 42.6 14.6 48 24 48z"/>
           </svg>
-          Continue with Google
+          {{ 'login.google' | t }}
         </button>
 
         <div class="or" aria-hidden="true"><span>or with your email</span></div>
 
-        <button class="btn btn-ink full" type="button" (click)="auth.login()">Sign in with email</button>
-        <button class="btn full" type="button" (click)="auth.register()">Create an account with email</button>
+        <button class="btn btn-ink full" type="button" (click)="auth.login()">{{ 'login.email' | t }}</button>
+        <button class="btn full" type="button" (click)="auth.register()">{{ 'login.create' | t }}</button>
 
         <p class="muted small note">
           By continuing you agree to the <a href="/terms.html">terms of use</a> and
@@ -40,7 +41,7 @@ import { AuthService } from '../core/auth.service';
         </p>
       </main>
 
-      <a routerLink="/welcome" class="back">← Back to home</a>
+      <a routerLink="/welcome" class="back">{{ 'login.back' | t }}</a>
     </div>
   `,
   styles: `

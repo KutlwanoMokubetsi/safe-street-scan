@@ -13,6 +13,7 @@ export interface User {
   friendCode: string;
   hasHome: boolean;
   alertRadiusM: number;
+  avatarUrl?: string;
 }
 
 export interface Report {
@@ -26,6 +27,9 @@ export interface Report {
   status: ReportStatus;
   createdAt: string;
   mine: boolean;
+  source?: 'USER' | 'NEWS';
+  sourceUrl?: string;
+  sourceName?: string;
 }
 
 export interface NewReport {
@@ -71,7 +75,7 @@ export interface Bounds {
 
 // ---- Friends, live location, panic ----
 
-export interface Person { userId: string; name: string; phone?: string; }
+export interface Person { userId: string; name: string; phone?: string; avatarUrl?: string; }
 export interface FriendEntry { friendshipId: string; person: Person; since: string; }
 export interface FriendsOverview {
   myCode: string;
@@ -95,6 +99,7 @@ export interface LiveFriend {
   userId: string;
   name: string;
   phone?: string;
+  avatarUrl?: string;
   reason: ShareReason;
   expiresAt?: string;
   latitude?: number;
@@ -116,6 +121,7 @@ export interface Alert {
   longitude?: number;
   accuracyM?: number;
   locationUpdatedAt?: string;
+  emergency?: EmergencyInfo;
 }
 
 export interface Live {
@@ -124,4 +130,26 @@ export interface Live {
   myAlert?: Alert;
   friends: LiveFriend[];
   alerts: Alert[];
+}
+
+export interface CommentItem {
+  id: string; author: string; role?: 'REPORTER'; body: string; createdAt: string;
+  mine: boolean; flaggedByMe: boolean; hidden: boolean;
+}
+export interface Suggestion {
+  id: string; title: string; url: string; sourceDomain?: string; publishedAt?: string; area?: string;
+  crimeType: CrimeType; confidence: number; placeName: string; latitude: number; longitude: number;
+  precisionM: number; corroborations: number; otherSources: string[]; status: string;
+}
+
+export interface RouteOption {
+  kind: 'SAFER' | 'FASTEST' | 'SAFE_AND_FAST';
+  distanceM: number; durationS: number; path: [number, number][];
+  exposureScore: number; metresInHotspots: number; hotspotsPassed: string[];
+}
+export interface RoutePlan { routes: RouteOption[]; provider: string; }
+export interface PlaceResult { name: string; detail: string; lat: number; lng: number; }
+export interface EmergencyInfo {
+  bloodType?: string; allergies?: string; medications?: string; conditions?: string; medicalAid?: string;
+  medicalAidNumber?: string; contactName?: string; contactPhone?: string; contactRelation?: string; notes?: string;
 }

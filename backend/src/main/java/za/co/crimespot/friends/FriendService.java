@@ -34,7 +34,7 @@ public class FriendService {
         this.hub = hub;
     }
 
-    public record Person(UUID userId, String name, String phone) {}
+    public record Person(UUID userId, String name, String phone, String avatarUrl) {}
     public record Entry(UUID friendshipId, Person person, Instant since) {}
     public record Overview(String myCode, List<Entry> friends, List<Entry> incoming, List<Entry> outgoing) {}
 
@@ -50,7 +50,9 @@ public class FriendService {
             if (other == null) continue;
             boolean accepted = f.getStatus() == FriendshipStatus.ACCEPTED;
             // Phone numbers are only shared between accepted friends.
-            Person p = new Person(other.getId(), other.displayName(), accepted ? other.getPhone() : null);
+            // Phone numbers and pictures are only shared between accepted friends.
+            Person p = new Person(other.getId(), other.displayName(), accepted ? other.getPhone() : null,
+                    accepted ? other.getAvatarUrl() : null);
             if (accepted) friends.add(new Entry(f.getId(), p, f.getRespondedAt()));
             else if (f.getAddresseeId().equals(me)) incoming.add(new Entry(f.getId(), p, f.getCreatedAt()));
             else outgoing.add(new Entry(f.getId(), p, f.getCreatedAt()));

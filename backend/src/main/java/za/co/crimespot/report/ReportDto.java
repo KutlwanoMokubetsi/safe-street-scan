@@ -17,11 +17,14 @@ public record ReportDto(
         Instant occurredAt,
         ReportStatus status,
         Instant createdAt,
-        boolean mine) {
+        boolean mine,
+        String source,
+        String sourceUrl,
+        String sourceName) {
 
     public static ReportDto from(CrimeReport r, UUID viewerId) {
         return new ReportDto(r.getId(), r.getCrimeType(), r.getDescription(), r.getLocationName(),
                 r.getLatitude(), r.getLongitude(), r.getOccurredAt(), r.getStatus(),
-                r.getCreatedAt(), r.getUserId().equals(viewerId));
+                r.getCreatedAt(), r.getUserId().equals(viewerId), r.getSource(), r.getSourceUrl(), r.getSourceName());
     }
 }

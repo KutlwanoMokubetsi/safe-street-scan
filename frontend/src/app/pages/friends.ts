@@ -7,6 +7,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { errorMessage } from '../core/auth.interceptor';
 import { FriendEntry, FriendsOverview } from '../core/models';
 import { ToastService } from '../core/toast.service';
+import { avatarSrc, initialsOf } from '../core/avatar';
 
 @Component({
   selector: 'app-friends',
@@ -75,9 +76,12 @@ import { ToastService } from '../core/toast.service';
               <ul>
                 @for (e of data()!.friends; track e.friendshipId) {
                   <li>
-                    <span>
+                    <span class="who">
+                      @if (pic(e.person.avatarUrl); as src) { <img [src]="src" alt="" class="av"> } @else { <span class="av">{{ ini(e.person.name) }}</span> }
+                      <span>
                       <span class="name">{{ e.person.name }}</span>
                       @if (!e.person.phone) { <span class="muted small block">No phone number added</span> }
+                      </span>
                     </span>
                     <span class="acts">
                       @if (e.person.phone) { <a class="btn btn-sm" [href]="'tel:' + e.person.phone">Call</a> }
@@ -121,6 +125,8 @@ import { ToastService } from '../core/toast.service';
     li { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--line); }
     li:last-child { border-bottom: 0; }
     .name { font-weight: 600; }
+    .who { display: flex; align-items: center; gap: 12px; }
+    .av { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; flex: none; display: grid; place-items: center; background: var(--surface); border: 1px solid var(--line); font-weight: 600; font-size: .85rem; }
     .block { display: block; }
     .acts { display: flex; gap: 8px; flex-shrink: 0; }
     @media (max-width: 860px) { .cols { grid-template-columns: 1fr; } }
@@ -135,6 +141,8 @@ export class Friends implements OnInit {
   readonly loading = signal(true);
   readonly busy = signal(false);
   code = '';
+  readonly pic = avatarSrc;
+  readonly ini = initialsOf;
 
   ngOnInit(): void {
     this.load();

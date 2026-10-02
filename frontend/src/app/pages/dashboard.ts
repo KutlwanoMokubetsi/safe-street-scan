@@ -55,7 +55,7 @@ import { errorMessage } from '../core/auth.interceptor';
                     <span class="type-tag">{{ label(r.crimeType) }}</span>
                     <span class="status status-{{ r.status }}">{{ r.status === 'VERIFIED' ? 'Verified' : 'Unverified' }}</span>
                   </div>
-                  <p class="desc">{{ r.description }}</p>
+                  <a class="desc-link" [routerLink]="['/reports', r.id]"><p class="desc">{{ r.description }}</p></a>
                   <p class="meta muted small">
                     {{ r.locationName || 'Location pinned on map' }} · {{ ago(r.occurredAt) }}
                   </p>
@@ -140,6 +140,8 @@ import { errorMessage } from '../core/auth.interceptor';
     .spots a { display: block; padding: 14px 16px; text-decoration: none; }
     .spots a:hover { background: var(--surface); }
     .risk { font-weight: 600; font-size: 0.9rem; white-space: nowrap; }
+    .desc-link { text-decoration: none; color: inherit; display: block; }
+    .desc-link:hover .desc { text-decoration: underline; }
     .insight { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 2px; }
     .news { margin-top: 24px; }
     .news-list li { padding: 12px 16px; border-bottom: 1px solid var(--line); }

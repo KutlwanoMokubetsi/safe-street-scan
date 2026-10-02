@@ -16,4 +16,6 @@ public record AlertDto(
         Double latitude,
         Double longitude,
         Double accuracyM,
-        Instant locationUpdatedAt) {}
+        Instant locationUpdatedAt,
+        /** Only while the alert is active, and only if the person agreed to share it. */
+        za.co.crimespot.user.EmergencyInfo emergency) {}
