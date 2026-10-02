@@ -58,13 +58,18 @@ public class UserProvisioningService {
         if (user == null) {
             user = new User();
             user.setKeycloakId(sub);
-            user.setEmail(email);
+            // An older, unlinked account may already use this address. Without a verified email
+            // we must not take it over, so this account gets a placeholder until it's verified.
+            user.setEmail(users.findByEmailIgnoreCase(email).isPresent() ? sub + "@users.crimespot" : email);
             user.setFullName(name);
             user.setFriendCode(newFriendCode());
             changed = true;
         } else {
             if (user.getFullName() == null && name != null) { user.setFullName(name); changed = true; }
-            if (!email.equals(user.getEmail()) && verified) { user.setEmail(email); changed = true; }
+            if (verified && !email.equals(user.getEmail()) && users.findByEmailIgnoreCase(email).isEmpty()) {
+                user.setEmail(email);
+                changed = true;
+            }
         }
 
         if (verified && !adminEmail.isEmpty() && adminEmail.equals(email) && user.getRole() != Role.ADMIN) {

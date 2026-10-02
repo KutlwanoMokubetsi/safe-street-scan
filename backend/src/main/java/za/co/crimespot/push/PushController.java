@@ -2,6 +2,7 @@ package za.co.crimespot.push;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -24,7 +25,7 @@ public class PushController {
     }
 
     public record Keys(@NotBlank @Size(max = 255) String p256dh, @NotBlank @Size(max = 255) String auth) {}
-    public record Subscribe(@NotBlank @Size(max = 2000) String endpoint, @Valid Keys keys) {}
+    public record Subscribe(@NotBlank @Size(max = 2000) String endpoint, @NotNull @Valid Keys keys) {}
     public record Unsubscribe(@NotBlank String endpoint) {}
 
     @GetMapping("/public-key")
