@@ -45,7 +45,7 @@ class MoreScreen extends StatelessWidget {
           item(Icons.medical_information, t('sos.card'), () => push(const EmergencyCardScreen()), sub: t('sos.cardHint')),
           item(Icons.person, 'Profile', () => push(const ProfileScreen())),
           if (Auth.instance.canModerate)
-            item(Icons.fact_check, t('nav.review'), () => launchUrl(Uri.parse('${Config.webUrl}/moderate'), mode: LaunchMode.externalApplication),
+            item(Icons.fact_check, t('nav.review'), () => launchUrl(Uri.parse('${AppConfig.webUrl}/moderate'), mode: LaunchMode.externalApplication),
                 sub: 'Opens the review queue in your browser'),
         ]),
       ),

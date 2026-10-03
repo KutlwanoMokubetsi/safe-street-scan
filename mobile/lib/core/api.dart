@@ -34,7 +34,7 @@ class Api {
     };
   }
 
-  Uri _uri(String path, [Map<String, String>? query]) => Uri.parse('${Config.apiUrl}$path').replace(queryParameters: query);
+  Uri _uri(String path, [Map<String, String>? query]) => Uri.parse('${AppConfig.apiUrl}$path').replace(queryParameters: query);
 
   Future<dynamic> get(String path, [Map<String, String>? query]) async =>
       _handle(() async => _client.get(_uri(path, query), headers: await _headers()));

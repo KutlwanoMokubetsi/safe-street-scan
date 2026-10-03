@@ -179,7 +179,7 @@ class Avatar extends StatelessWidget {
     return CircleAvatar(
       radius: size / 2,
       backgroundColor: CS.inkSoft,
-      foregroundImage: url == null ? null : NetworkImage('${Config.apiUrl}$url'),
+      foregroundImage: url == null ? null : NetworkImage('${AppConfig.apiUrl}$url'),
       child: Text(initials.isEmpty ? '?' : initials, style: TextStyle(color: Colors.white, fontSize: size * 0.36, fontWeight: FontWeight.w600)),
     );
   }

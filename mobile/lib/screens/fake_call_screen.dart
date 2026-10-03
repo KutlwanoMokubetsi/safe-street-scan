@@ -35,7 +35,10 @@ class _FakeCallScreenState extends State<FakeCallScreen> {
 
   void _schedule() {
     setState(() { _phase = _Phase.waiting; _countdown = _delay; });
-    if (_delay == 0) return _ring();
+    if (_delay == 0) {
+      _ring();
+      return;
+    }
     _timer = Timer.periodic(const Duration(seconds: 1), (tm) {
       setState(() => _countdown--);
       if (_countdown <= 0) { tm.cancel(); _ring(); }

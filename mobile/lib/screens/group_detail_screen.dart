@@ -95,7 +95,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
                   Text('${g.list('members').length}${g.integer('memberCap') > 0 ? ' / ${g.integer('memberCap')}' : ''} members · invite code ${g.str('inviteCode')}'),
                   const SizedBox(height: 8),
                   FilledButton.icon(
-                    onPressed: () => Share.share('Join "${g.str('name')}" on CrimeSpot so we can look out for each other. Invite code: ${g.str('inviteCode')}. ${Config.webUrl}'),
+                    onPressed: () => Share.share('Join "${g.str('name')}" on CrimeSpot so we can look out for each other. Invite code: ${g.str('inviteCode')}. ${AppConfig.webUrl}'),
                     icon: const Icon(Icons.share), label: const Text('Invite people')),
                   const SizedBox(height: 16),
                   SectionCard(

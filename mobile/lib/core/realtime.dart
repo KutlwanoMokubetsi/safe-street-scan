@@ -39,7 +39,7 @@ class Realtime {
   Future<void> _connect() async {
     if (!_running) return;
     try {
-      final ch = WebSocketChannel.connect(Uri.parse(Config.wsUrl));
+      final ch = WebSocketChannel.connect(Uri.parse(AppConfig.wsUrl));
       _ch = ch;
       await ch.ready;
       await _auth();

@@ -11,8 +11,8 @@ const _greyscale = ColorFilter.matrix(<double>[
 ]);
 
 TileLayer baseTiles() => TileLayer(
-      urlTemplate: Config.tileUrl,
-      userAgentPackageName: Config.userAgentPackage,
+      urlTemplate: AppConfig.tileUrl,
+      userAgentPackageName: AppConfig.userAgentPackage,
       maxZoom: 19,
       tileBuilder: (context, tileWidget, tile) => ColorFiltered(colorFilter: _greyscale, child: tileWidget),
     );

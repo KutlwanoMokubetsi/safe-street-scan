@@ -76,9 +76,9 @@ public class CommentService {
         comments.save(c);
 
         if (!r.getUserId().equals(me.id())) {
-            String body = preview(check.text());
+            String previewText = preview(check.text());
             notifications.sendLocalized(List.of(r.getUserId()),
-                    lang -> new String[] { za.co.crimespot.i18n.Messages.t(lang, "push.comment.title"), body }, "/reports/" + reportId, false);
+                    lang -> new String[] { za.co.crimespot.i18n.Messages.t(lang, "push.comment.title"), previewText }, "/reports/" + reportId, false);
         }
         String notice = check.reason() == null ? null
                 : za.co.crimespot.i18n.Messages.t(za.co.crimespot.i18n.Localizer.requestLang(), check.reason());

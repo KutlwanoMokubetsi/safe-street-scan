@@ -189,8 +189,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           const SizedBox(height: 8),
           OutlinedButton(onPressed: () async { await Push.instance.unregisterDevice(); await Auth.instance.signOut(); }, child: Text(t('app.signOut'))),
           Wrap(alignment: WrapAlignment.center, children: [
-            TextButton(onPressed: () => launchUrl(Uri.parse('${Config.webUrl}/privacy.html')), child: const Text('Privacy policy')),
-            TextButton(onPressed: () => launchUrl(Uri.parse('${Config.webUrl}/terms.html')), child: const Text('Terms of use')),
+            TextButton(onPressed: () => launchUrl(Uri.parse('${AppConfig.webUrl}/privacy.html')), child: const Text('Privacy policy')),
+            TextButton(onPressed: () => launchUrl(Uri.parse('${AppConfig.webUrl}/terms.html')), child: const Text('Terms of use')),
           ]),
         ]),
       ),

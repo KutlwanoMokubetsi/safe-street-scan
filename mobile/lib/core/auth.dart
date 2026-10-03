@@ -21,13 +21,13 @@ class Auth {
   Future<String?>? _refreshing;
 
   static final _config = AuthorizationServiceConfiguration(
-    authorizationEndpoint: '${Config.issuer}/protocol/openid-connect/auth',
-    tokenEndpoint: '${Config.issuer}/protocol/openid-connect/token',
-    endSessionEndpoint: '${Config.issuer}/protocol/openid-connect/logout',
+    authorizationEndpoint: '${AppConfig.issuer}/protocol/openid-connect/auth',
+    tokenEndpoint: '${AppConfig.issuer}/protocol/openid-connect/token',
+    endSessionEndpoint: '${AppConfig.issuer}/protocol/openid-connect/logout',
   );
   static final _registerConfig = AuthorizationServiceConfiguration(
-    authorizationEndpoint: '${Config.issuer}/protocol/openid-connect/registrations',
-    tokenEndpoint: '${Config.issuer}/protocol/openid-connect/token',
+    authorizationEndpoint: '${AppConfig.issuer}/protocol/openid-connect/registrations',
+    tokenEndpoint: '${AppConfig.issuer}/protocol/openid-connect/token',
   );
 
   String? get userId => user.value?['id'] as String?;
@@ -46,8 +46,8 @@ class Auth {
 
   Future<void> signIn({bool google = false, bool register = false}) async {
     final res = await _appAuth.authorizeAndExchangeCode(AuthorizationTokenRequest(
-      Config.clientId,
-      Config.redirectUrl,
+      AppConfig.clientId,
+      AppConfig.redirectUrl,
       serviceConfiguration: register ? _registerConfig : _config,
       scopes: const ['openid', 'profile', 'email'],
       additionalParameters: google ? const {'kc_idp_hint': 'google'} : null,
@@ -74,7 +74,7 @@ class Auth {
 
   Future<String?> _doRefresh() async {
     try {
-      final res = await _appAuth.token(TokenRequest(Config.clientId, Config.redirectUrl,
+      final res = await _appAuth.token(TokenRequest(AppConfig.clientId, AppConfig.redirectUrl,
           serviceConfiguration: _config, refreshToken: _refresh, scopes: const ['openid', 'profile', 'email']));
       await _save(res.accessToken, res.refreshToken ?? _refresh, res.idToken ?? _idToken, res.accessTokenExpirationDateTime);
       return _access;
@@ -97,7 +97,7 @@ class Auth {
     await signedOut();
     if (id != null) {
       try {
-        await _appAuth.endSession(EndSessionRequest(idTokenHint: id, postLogoutRedirectUrl: Config.redirectUrl, serviceConfiguration: _config));
+        await _appAuth.endSession(EndSessionRequest(idTokenHint: id, postLogoutRedirectUrl: AppConfig.redirectUrl, serviceConfiguration: _config));
       } catch (_) {}
     }
   }

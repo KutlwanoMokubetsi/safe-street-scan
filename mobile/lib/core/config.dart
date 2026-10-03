@@ -1,5 +1,5 @@
 /// Server addresses. Same backend as the web app.
-class Config {
+class AppConfig {
   static const apiUrl = 'https://crimespot-api.onrender.com';
   static const wsUrl = 'wss://crimespot-api.onrender.com/ws';
   static const webUrl = 'https://crimespot-web.onrender.com';

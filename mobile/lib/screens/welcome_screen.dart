@@ -70,8 +70,8 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
             ),
             const SizedBox(height: 28),
             Wrap(alignment: WrapAlignment.center, spacing: 16, children: [
-              TextButton(onPressed: () => launchUrl(Uri.parse('${Config.webUrl}/privacy.html')), child: const Text('Privacy policy', style: TextStyle(color: Color(0xFFC9D1D9)))),
-              TextButton(onPressed: () => launchUrl(Uri.parse('${Config.webUrl}/terms.html')), child: const Text('Terms of use', style: TextStyle(color: Color(0xFFC9D1D9)))),
+              TextButton(onPressed: () => launchUrl(Uri.parse('${AppConfig.webUrl}/privacy.html')), child: const Text('Privacy policy', style: TextStyle(color: Color(0xFFC9D1D9)))),
+              TextButton(onPressed: () => launchUrl(Uri.parse('${AppConfig.webUrl}/terms.html')), child: const Text('Terms of use', style: TextStyle(color: Color(0xFFC9D1D9)))),
             ]),
           ]),
         ),

@@ -86,7 +86,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
                         OutlinedButton.icon(onPressed: () { Clipboard.setData(ClipboardData(text: code)); snack(context, 'Code copied.'); },
                             icon: const Icon(Icons.copy), label: const Text('Copy')),
                         FilledButton.icon(
-                          onPressed: () => Share.share('Add me on CrimeSpot so we can look out for each other. My friend code is $code. ${Config.webUrl}'),
+                          onPressed: () => Share.share('Add me on CrimeSpot so we can look out for each other. My friend code is $code. ${AppConfig.webUrl}'),
                           icon: const Icon(Icons.share), label: const Text('Share')),
                       ]),
                     ]),
