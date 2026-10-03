@@ -60,6 +60,9 @@ Push notifications only work in production builds (`npx ng build` and serve `dis
 | `CORS_ALLOWED_ORIGINS` | Comma-separated web origins |
 | `ADMIN_EMAIL` | Becomes admin on first verified sign-in |
 | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` | `npx web-push generate-vapid-keys`; subject like `mailto:you@example.com` |
+| `KEYCLOAK_ADMIN_CLIENT_ID` / `KEYCLOAK_ADMIN_CLIENT_SECRET` | Confidential Keycloak client with `manage-users`, so in-app account deletion also removes the sign-in account |
+| `FIREBASE_CREDENTIALS` | Optional. Firebase service account JSON, for push notifications to the Android app |
+| `SENTRY_DSN` | Optional. Error tracking for the API (the web app's DSN goes in `environment.prod.ts`) |
 | `ORS_API_KEY` | Optional. openrouteservice key for true hotspot avoidance in safe routes |
 | `DATA_ENCRYPTION_KEY` | **Required.** `openssl rand -base64 32`. Keep a safe copy |
 
@@ -109,6 +112,35 @@ The realm in `keycloak/realm/` is imported **only the first time** Keycloak star
 - **Fake call** (`/fake-call`): full-screen incoming call with a synthesised ringtone, vibration and a spoken line in the chosen language. Web apps can only ring while open.
 - **Emergency card** (`/emergency-card`): blood type, allergies, medication, medical aid, emergency contact. Encrypted; saved only with explicit consent; shown to friends only while that person's SOS is active.
 - **Languages:** English, Afrikaans, isiZulu, isiXhosa (`frontend/src/app/core/i18n.ts`, one row per string). **Non-English text must be reviewed by native speakers before launch, starting with `sos.*` and `alert.*`.** Missing strings fall back to English. Server messages and notifications are English for now.
+
+## Android app (`mobile/`)
+
+A native Flutter app (no WebView): its own screens for the map, reporting, SOS, live sharing, Walk with me, safe routes, groups, fake call, emergency card and profile. Moderation stays on the web.
+
+- **Devices:** Android 6.0+ (~98% of phones), phones and tablets, large text and dark mode. Separate 64-bit and 32-bit builds for smaller downloads.
+- **Native extras:** background location while sharing, during an SOS or a walk (foreground service with a visible notification); SOS shortcut on the app icon; push notifications through Firebase.
+- **Sign-in:** Keycloak through the phone's browser (PKCE), so Google sign-in works. Add `za.co.crimespot.app:/oauth2redirect` to the `crimespot-web` client's *Valid redirect URIs* and *Valid post logout redirect URIs*.
+- **Builds:** `.github/workflows/android.yml` builds on every push that changes `mobile/`, and publishes `crimespot.apk`, `crimespot-arm64.apk` and `crimespot-armv7.apk` to the `android-latest` GitHub release, which the website links to. Analyzer errors appear as annotations on the workflow run.
+- **Secrets (GitHub → Settings → Secrets and variables → Actions):** `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD` (keep the same key forever, or users can't install updates); optional `GOOGLE_SERVICES_JSON` for push.
+- **Push:** create a Firebase project, add an Android app with package `za.co.crimespot.app`, put `google-services.json` in the `GOOGLE_SERVICES_JSON` secret, and set `FIREBASE_CREDENTIALS` (service account JSON) on the API.
+- **Translations** are generated from the web table (`lib/core/strings.dart`).
+
+## Lost Keycloak admin password
+
+Keycloak only reads `KC_BOOTSTRAP_ADMIN_*` on its very first start. To get back in:
+1. On Render, add `KC_RECOVERY_ADMIN_PASSWORD` (a strong password) to **crimespot-auth**, optionally `KC_RECOVERY_ADMIN_USERNAME` (default `recovery-admin`). Keycloak restarts and `start.sh` creates that temporary admin.
+2. Sign in at `/admin` (master realm) as the recovery admin, then **Users → admin → Credentials → Reset password**.
+3. Sign in as `admin` with the new password, delete the recovery admin user, and remove the Render variables.
+
+## Community and trust
+
+- **"Seen it too":** neighbours confirm reports. A pending report becomes **community-verified** when 3 people confirm it including at least one trusted reporter, or when a trusted reporter's report is confirmed by another trusted reporter. Moderators can still reject it.
+- **Trust levels** (`TrustService`): from each reporter's verified/rejected history and confirmations received. Low-trust reporters are limited to 2 reports an hour and count less in hotspots. The review queue shows most-confirmed and trusted reports first.
+- **Time-aware risk:** hotspots learn peak hours and weekday/weekend patterns; the map shades by risk *now*, and safe routes score risk at the chosen departure time.
+- **Walk with me:** a friend virtually escorts you; they're alerted if you stop moving for 3 minutes or your location stops updating, and can raise an SOS for you.
+- **Groups:** neighbourhood watches, estates and CPFs with invite codes, a filtered feed, admin alerts, area reports and opt-in SOS sharing. Free plan: 100 members per group (`watch_groups.plan` is ready for a paid estate tier).
+- **Power outages:** community-reported; a zone needs 3 people within ~1 km. Zones overlapping a hotspot warn nearby residents.
+- **Account deletion and data download** in Profile (POPIA; Apple requires in-app deletion).
 
 ## Capacity and resource use
 

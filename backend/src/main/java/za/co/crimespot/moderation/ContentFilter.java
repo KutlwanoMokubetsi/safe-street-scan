@@ -10,6 +10,8 @@ import java.util.regex.Pattern;
 /**
  * Checks user text (comments and report descriptions) before it's saved.
  *
+ * Reasons are message keys (see i18n.Messages), translated for the user.
+ *
  *  BLOCK  personal information (phone numbers, emails, SA ID numbers, vehicle registrations),
  *         threats / calls for vigilante violence, and hate slurs. The user is told why and can rephrase.
  *  MASK   profanity (English and common South African terms) is replaced with •••, the rest is kept.
@@ -56,18 +58,18 @@ public class ContentFilter {
         if (raw == null) return new Result(Action.ALLOW, null, null);
         String text = raw.strip();
 
-        if (PHONE.matcher(text).find()) return block("Please don't share phone numbers. Contact details stay private on CrimeSpot.");
-        if (EMAIL.matcher(text).find()) return block("Please don't share email addresses.");
-        if (SA_ID.matcher(text).find()) return block("Please don't share ID numbers.");
+        if (PHONE.matcher(text).find()) return block("err.filter.phone");
+        if (EMAIL.matcher(text).find()) return block("err.filter.email");
+        if (SA_ID.matcher(text).find()) return block("err.filter.id");
         if (PLATE.matcher(text.toUpperCase(Locale.ROOT)).find()) {
-            return block("Vehicle registration numbers can identify people, so they aren't allowed here. Give them to SAPS on 10111.");
+            return block("err.filter.plate");
         }
 
         String norm = normalise(text);
         for (Pattern p : THREATS) if (p.matcher(norm).find()) {
-            return block("Calls for violence or taking the law into your own hands aren't allowed. Report it to SAPS instead.");
+            return block("err.filter.threat");
         }
-        for (Pattern p : SLURS) if (p.matcher(norm).find()) return block("Hateful language isn't allowed on CrimeSpot.");
+        for (Pattern p : SLURS) if (p.matcher(norm).find()) return block("err.filter.hate");
 
         // Mask profanity in the original text, matching through the same evasion-tolerant patterns.
         String masked = text;
@@ -79,7 +81,7 @@ public class ContentFilter {
             while (m.find()) { for (int i = m.start(); i < m.end(); i++) sb.setCharAt(i, '•'); any = true; }
             if (any) { masked = collapseMask(sb.toString()); changed = true; }
         }
-        return changed ? new Result(Action.MASK, masked, "Some words were hidden.") : new Result(Action.ALLOW, text, null);
+        return changed ? new Result(Action.MASK, masked, "err.filter.masked") : new Result(Action.ALLOW, text, null);
     }
 
     private static Result block(String reason) { return new Result(Action.BLOCK, null, reason); }

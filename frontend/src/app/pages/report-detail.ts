@@ -8,10 +8,11 @@ import { AuthService } from '../core/auth.service';
 import { crimeColor, crimeLabel, timeAgo } from '../core/crime-types';
 import { CommentItem, Report } from '../core/models';
 import { ToastService } from '../core/toast.service';
+import { TPipe } from '../core/i18n';
 
 @Component({
   selector: 'app-report-detail',
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, TPipe],
   template: `
     <div class="page narrow">
       <a routerLink="/map" class="back">← Map</a>
@@ -29,7 +30,16 @@ import { ToastService } from '../core/toast.service';
           @if (r.source === 'NEWS' && r.sourceUrl) {
             <p class="small news-src">From the news, checked by a moderator: <a [href]="r.sourceUrl" target="_blank" rel="noopener noreferrer">{{ r.sourceName || 'source' }} ↗</a></p>
           }
-          <a class="btn btn-sm" routerLink="/map" [queryParams]="{ lat: r.latitude, lng: r.longitude }">Show on map</a>
+          @if (r.reporterTrusted) { <p class="small trusted">✓ {{ 'seen.trusted' | t }}</p> }
+          <div class="seen-row">
+            @if (!r.mine && r.status !== 'REJECTED') {
+              <button type="button" class="btn btn-sm" [class.on]="r.confirmedByMe" (click)="toggleSeen(r)" [attr.aria-pressed]="!!r.confirmedByMe">
+                👁 {{ 'seen.button' | t }}
+              </button>
+            }
+            @if (r.confirmations) { <span class="muted small">{{ 'seen.count' | t: { n: r.confirmations } }}</span> }
+            <a class="btn btn-sm" routerLink="/map" [queryParams]="{ lat: r.latitude, lng: r.longitude }">Show on map</a>
+          </div>
         </article>
 
         <section class="panel">
@@ -89,7 +99,9 @@ import { ToastService } from '../core/toast.service';
     .row { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
     .desc { font-size: 1.1rem; margin: 10px 0 6px; overflow-wrap: anywhere; }
     .news-src { margin: 8px 0 12px; }
-    .report .btn { margin-top: 10px; }
+    .seen-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
+    .seen-row .btn.on { background: var(--ink); color: #fff; border-color: var(--ink); }
+    .trusted { color: var(--safe); font-weight: 600; margin-top: 6px; }
     .comments { list-style: none; margin: 0; padding: 0; }
     .comments li { padding: 12px 16px; border-bottom: 1px solid var(--line); }
     .comments li.hidden { background: #FFF6D6; }
@@ -153,6 +165,14 @@ export class ReportDetail implements OnInit, OnDestroy {
       },
       // The server explains what to change (e.g. no phone numbers), so show it next to the box.
       error: err => { this.busy.set(false); this.formError.set(errorMessage(err, "Couldn't post your comment.")); },
+    });
+  }
+
+  toggleSeen(r: Report): void {
+    const req = r.confirmedByMe ? this.api.unconfirm(r.id) : this.api.confirm(r.id);
+    req.subscribe({
+      next: res => this.report.set({ ...r, confirmedByMe: !r.confirmedByMe, confirmations: res.confirmations }),
+      error: err => this.toast.error(errorMessage(err)),
     });
   }
 

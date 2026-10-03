@@ -26,7 +26,8 @@ public final class HotspotDetector {
     public enum Trend { RISING, STEADY, FALLING }
 
     public record Hotspot(String name, double lat, double lng, int radiusMeters, double intensity, int count,
-                          CrimeType topType, String peakHours, Trend trend) {}
+                          CrimeType topType, String peakHours, Trend trend, String peakDays) {}
+
 
     private static final double RECENCY_DAYS = 14.0;
     private static final double PENDING_WEIGHT = 0.6;
@@ -34,10 +35,19 @@ public final class HotspotDetector {
     private static final double EARTH_RADIUS_M = 6_371_000;
     private static final double M_PER_DEG_LAT = 111_320;
     private static final ZoneId SAST = ZoneId.of("Africa/Johannesburg");
+    /** Default report weighting: verified counts fully, unverified at 0.6. */
+    private static final java.util.function.ToDoubleFunction<CrimeReport> DEFAULT_TRUST =
+            r -> r.getStatus() == ReportStatus.VERIFIED ? 1.0 : PENDING_WEIGHT;
 
     private HotspotDetector() {}
 
     public static List<Hotspot> detect(List<CrimeReport> reports, double epsMeters, int minPts, Instant now) {
+        return detect(reports, epsMeters, minPts, now, DEFAULT_TRUST);
+    }
+
+    /** @param trust weight per report (e.g. from reporter trust and community confirmations), 0..1 */
+    public static List<Hotspot> detect(List<CrimeReport> reports, double epsMeters, int minPts, Instant now,
+                                       java.util.function.ToDoubleFunction<CrimeReport> trust) {
         int n = reports.size();
         if (n < minPts) return List.of();
 
@@ -81,16 +91,16 @@ public final class HotspotDetector {
         for (int i = 0; i < n; i++) if (label[i] >= 0) clusters.computeIfAbsent(label[i], k -> new ArrayList<>()).add(reports.get(i));
 
         List<Hotspot> result = new ArrayList<>();
-        for (List<CrimeReport> c : clusters.values()) result.add(describe(c, now));
+        for (List<CrimeReport> c : clusters.values()) result.add(describe(c, now, trust));
         result.sort(Comparator.comparingDouble(Hotspot::intensity).reversed());
         return result;
     }
 
-    private static Hotspot describe(List<CrimeReport> c, Instant now) {
+    private static Hotspot describe(List<CrimeReport> c, Instant now, java.util.function.ToDoubleFunction<CrimeReport> trust) {
         // Weighted centre: severe, recent, verified incidents pull the centre towards them.
         double wSum = 0, lat = 0, lng = 0, score = 0;
         for (CrimeReport r : c) {
-            double w = weight(r, now);
+            double w = weight(r, now, trust.applyAsDouble(r));
             wSum += w; lat += r.getLatitude() * w; lng += r.getLongitude() * w; score += w;
         }
         lat /= wSum; lng /= wSum;
@@ -108,7 +118,39 @@ public final class HotspotDetector {
                 .entrySet().stream().max(Map.Entry.comparingByValue()).map(Map.Entry::getKey)
                 .orElse(String.format(Locale.ROOT, "Area near %.4f, %.4f", lat, lng));
 
-        return new Hotspot(name, lat, lng, radius, intensity, c.size(), topType, peakHours(c), trend(c, now));
+        return new Hotspot(name, lat, lng, radius, intensity, c.size(), topType, peakHours(c), trend(c, now), peakDays(c));
+    }
+
+    /** WEEKEND if Fri–Sun hold ≥ 60% of incidents (vs 43% by chance), WEEKDAY if Mon–Thu hold ≥ 85%. */
+    static String peakDays(List<CrimeReport> c) {
+        if (c.size() < 4) return null;
+        long weekend = c.stream().map(r -> r.getOccurredAt().atZone(SAST).getDayOfWeek())
+                .filter(d -> d == java.time.DayOfWeek.FRIDAY || d == java.time.DayOfWeek.SATURDAY || d == java.time.DayOfWeek.SUNDAY).count();
+        double share = weekend / (double) c.size();
+        if (share >= 0.6) return "WEEKEND";
+        if (share <= 0.15) return "WEEKDAY";
+        return null;
+    }
+
+    /**
+     * Risk of a hotspot at a given time, 0..1: higher inside its peak hours and days, lower outside them.
+     * Used by the map ("risk now") and by safe routes (for the chosen departure time).
+     */
+    public static double riskAt(double intensity, String peakHours, String peakDays, java.time.ZonedDateTime when) {
+        double f = 1.0;
+        if (peakHours != null && peakHours.length() >= 2) {
+            try {
+                int start = Integer.parseInt(peakHours.substring(0, 2));
+                int hour = when.withZoneSameInstant(SAST).getHour();
+                f *= ((hour - start + 24) % 24) < 4 ? 1.3 : 0.6;
+            } catch (NumberFormatException ignored) { }
+        }
+        if (peakDays != null) {
+            var d = when.withZoneSameInstant(SAST).getDayOfWeek();
+            boolean weekend = d == java.time.DayOfWeek.FRIDAY || d == java.time.DayOfWeek.SATURDAY || d == java.time.DayOfWeek.SUNDAY;
+            f *= (peakDays.equals("WEEKEND") == weekend) ? 1.15 : 0.85;
+        }
+        return Math.min(1.0, Math.round(intensity * f * 100) / 100.0);
     }
 
     /** The 4-hour window (local time) holding the most incidents, if it holds at least half of them. */
@@ -154,10 +196,9 @@ public final class HotspotDetector {
 
     private static long key(long cy, long cx) { return (cy << 32) ^ (cx & 0xffffffffL); }
 
-    static double weight(CrimeReport r, Instant now) {
+    static double weight(CrimeReport r, Instant now, double trust) {
         double ageDays = Math.max(0, Duration.between(r.getOccurredAt(), now).toHours() / 24.0);
         double recency = Math.exp(-ageDays / RECENCY_DAYS);
-        double trust = r.getStatus() == ReportStatus.VERIFIED ? 1.0 : PENDING_WEIGHT;
         return r.getCrimeType().severity() * recency * trust;
     }
 

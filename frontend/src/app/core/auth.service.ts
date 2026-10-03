@@ -40,7 +40,7 @@ export class AuthService {
 
   updateProfile(data: {
     fullName?: string; phone?: string; homeLatitude?: number; homeLongitude?: number;
-    alertRadiusM?: number; clearHome?: boolean;
+    alertRadiusM?: number; clearHome?: boolean; lang?: string;
   }) {
     return this.http.patch<User>(`${environment.apiUrl}/api/me`, data);
   }

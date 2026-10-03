@@ -68,8 +68,8 @@ const HOLD_MS = 3000;
         }
 
         <details class="msg">
-          <summary>{{ 'sos.message' | t }}</summary>
-          <input [(ngModel)]="message" maxlength="280" placeholder="e.g. Car broke down on N1 near Midrand">
+          <summary id="sos-msg-label">{{ 'sos.message' | t }}</summary>
+          <input aria-labelledby="sos-msg-label" [(ngModel)]="message" maxlength="280" placeholder="e.g. Car broke down on N1 near Midrand">
         </details>
 
         <div class="calls">

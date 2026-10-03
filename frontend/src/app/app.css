@@ -54,7 +54,14 @@
 
 @media (max-width: 860px) {
   .bar { flex-wrap: wrap; height: auto; padding: 10px 12px 0; gap: 8px; }
-  .nav { order: 3; width: 100%; overflow-x: auto; height: 44px; }
+  .nav {
+    order: 3; width: 100%; overflow-x: auto; height: 44px; scrollbar-width: none;
+    /* fade on the right hints that more tabs are a swipe away */
+    -webkit-mask-image: linear-gradient(90deg, #000 85%, transparent);
+            mask-image: linear-gradient(90deg, #000 85%, transparent);
+  }
+  .nav::-webkit-scrollbar { display: none; }
+  .nav a { scroll-snap-align: start; }
   .sos-btn, .report-btn { display: none; }
   .alert-banner { top: 0; position: static; }
   .bottom-bar {
@@ -90,3 +97,17 @@
 .toast button { background: none; border: 0; color: #C9D1D9; font-size: 1.2rem; line-height: 1; cursor: pointer; }
 
 @keyframes toast-in { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+
+.offline.down { background: #7A1F16; }
+.walk-banner {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;
+  padding: 10px 16px; background: #E8EEF8; color: #1D3557; border-bottom: 1px solid #C9D6EA; text-decoration: none;
+}
+.walk-banner.warn { background: #FFF1D6; color: #6B4500; border-bottom-color: #F0D98A; }
+.walk-banner .acts { display: flex; gap: 8px; }
+.walk-banner button, .walk-banner .acts a {
+  background: none; border: 1px solid currentColor; color: inherit; border-radius: var(--radius-s);
+  font: 600 .85rem var(--font-body); padding: 6px 12px; min-height: 34px; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center;
+}
+.walk-banner .yes { background: #1D3557; color: #fff; border-color: #1D3557; }
+.walk-banner.warn .yes { background: #6B4500; border-color: #6B4500; }

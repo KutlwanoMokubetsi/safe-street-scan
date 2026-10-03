@@ -12,6 +12,8 @@ export const routes: Routes = [
   { path: 'my-reports', canActivate: [authGuard], loadComponent: () => import('./pages/my-reports').then(m => m.MyReports), title: 'My reports · CrimeSpot' },
   { path: 'friends', canActivate: [authGuard], loadComponent: () => import('./pages/friends').then(m => m.Friends), title: 'Friends · CrimeSpot' },
   { path: 'live', canActivate: [authGuard], loadComponent: () => import('./pages/live-page').then(m => m.LivePage), title: 'Live location · CrimeSpot' },
+  { path: 'groups', canActivate: [authGuard], loadComponent: () => import('./pages/groups').then(m => m.Groups), title: 'Groups · CrimeSpot' },
+  { path: 'groups/:id', canActivate: [authGuard], loadComponent: () => import('./pages/group-detail').then(m => m.GroupDetailPage), title: 'Group · CrimeSpot' },
   { path: 'route', canActivate: [authGuard], loadComponent: () => import('./pages/route-page').then(m => m.RoutePage), title: 'Safe route · CrimeSpot' },
   { path: 'fake-call', canActivate: [authGuard], loadComponent: () => import('./pages/fake-call').then(m => m.FakeCall), title: 'CrimeSpot' },
   { path: 'emergency-card', canActivate: [authGuard], loadComponent: () => import('./pages/emergency-card').then(m => m.EmergencyCardPage), title: 'Emergency card · CrimeSpot' },

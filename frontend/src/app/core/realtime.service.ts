@@ -4,7 +4,7 @@ import { environment } from '../../environments/environment';
 import { keycloak } from './keycloak';
 import { ToastService } from './toast.service';
 
-export type RealtimeEvent = 'live' | 'reports' | 'hotspots' | 'friends';
+export type RealtimeEvent = 'live' | 'reports' | 'hotspots' | 'friends' | 'groups' | 'outages';
 
 /**
  * One WebSocket per tab. The server sends "something changed" events; pages re-fetch through the API.
@@ -57,12 +57,12 @@ export class RealtimeService {
           this.retry = 0;
           this.connected.set(true);
           // Catch up on anything missed while disconnected.
-          (['live', 'reports', 'hotspots', 'friends'] as RealtimeEvent[]).forEach(t => this.events$.next(t));
+          (['live', 'reports', 'hotspots', 'friends', 'groups', 'outages'] as RealtimeEvent[]).forEach(t => this.events$.next(t));
           break;
-        case 'live': case 'friends':
+        case 'live': case 'friends': case 'groups':
           this.events$.next(msg.type);
           break;
-        case 'reports': case 'hotspots': {
+        case 'reports': case 'hotspots': case 'outages': {
           // Sent to everyone at once: add 0–1.5 s of jitter so re-fetches are spread out.
           const t = msg.type;
           setTimeout(() => this.events$.next(t), Math.random() * 1500);

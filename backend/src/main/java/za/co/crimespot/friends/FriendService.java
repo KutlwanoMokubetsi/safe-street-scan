@@ -85,9 +85,11 @@ public class FriendService {
         friendships.save(f);
 
         String name = users.findById(me).map(User::displayName).orElse("Someone");
-        notifications.send(target.getId(), "New friend request", name + " wants to add you on CrimeSpot.", "/friends");
+        var p = Map.of("name", name);
+        notifications.sendLocalized(List.of(target.getId()), l -> new String[] {
+                za.co.crimespot.i18n.Messages.t(l, "push.friendReq.title"), za.co.crimespot.i18n.Messages.t(l, "push.friendReq.body", p) }, "/friends", false);
         hub.toUsers(List.of(me, target.getId()), "friends");
-        hub.notice(List.of(target.getId()), name + " sent you a friend request");
+        hub.noticeLocalized(List.of(target.getId()), l -> za.co.crimespot.i18n.Messages.t(l, "push.friendReq.body", p));
     }
 
     @Transactional
@@ -100,9 +102,11 @@ public class FriendService {
         f.setRespondedAt(Instant.now());
         friendships.save(f);
         String name = users.findById(me).map(User::displayName).orElse("Someone");
-        notifications.send(f.getRequesterId(), "Friend request accepted", name + " accepted your friend request.", "/friends");
+        var p = Map.of("name", name);
+        notifications.sendLocalized(List.of(f.getRequesterId()), l -> new String[] {
+                za.co.crimespot.i18n.Messages.t(l, "push.friendAcc.title"), za.co.crimespot.i18n.Messages.t(l, "push.friendAcc.body", p) }, "/friends", false);
         hub.toUsers(List.of(me, f.getRequesterId()), "friends");
-        hub.notice(List.of(f.getRequesterId()), name + " accepted your friend request");
+        hub.noticeLocalized(List.of(f.getRequesterId()), l -> za.co.crimespot.i18n.Messages.t(l, "push.friendAcc.body", p));
     }
 
     /** Declines a request, cancels one you sent, or removes a friend. Also stops location sharing both ways. */

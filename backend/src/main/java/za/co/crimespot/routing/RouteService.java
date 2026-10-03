@@ -16,7 +16,6 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
-import java.time.LocalTime;
 import java.time.ZoneId;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -30,7 +29,7 @@ import java.util.concurrent.locks.ReentrantLock;
  * Without one, the public OSRM servers (routing.openstreetmap.de) provide alternatives, plus detours via
  * points beside the worst hotspot on the fastest route; the least-exposed candidate wins.
  *
- * Exposure = metres inside each hotspot × its intensity, ×1.5 if it's currently that hotspot's peak hours.
+ * Exposure = metres inside each hotspot × that hotspot's risk at the departure time (peak hours and days).
  */
 @Service
 public class RouteService {
@@ -61,9 +60,12 @@ public class RouteService {
         this.orsKey = orsKey;
     }
 
-    public Plan plan(Point from, Point to, boolean walk) {
+    public Plan plan(Point from, Point to, boolean walk) { return plan(from, to, walk, null); }
+
+    public Plan plan(Point from, Point to, boolean walk, java.time.Instant departAt) {
+        java.time.ZonedDateTime when = (departAt == null ? java.time.Instant.now() : departAt).atZone(SAST);
         validate(from, to, walk);
-        String key = String.format(Locale.ROOT, "%.4f,%.4f|%.4f,%.4f|%s", from.lat(), from.lng(), to.lat(), to.lng(), walk);
+        String key = String.format(Locale.ROOT, "%.4f,%.4f|%.4f,%.4f|%s|%d", from.lat(), from.lng(), to.lat(), to.lng(), walk, when.getHour());
         Long t = cacheTime.get(key);
         if (t != null && System.currentTimeMillis() - t < 10 * 60_000) return cache.get(key);
 
@@ -92,7 +94,7 @@ public class RouteService {
         }
         if (candidates.isEmpty()) throw new BadRequestException("No route found between those points. Try a nearby street.");
 
-        List<Option> scored = candidates.stream().map(c -> score("", c, spots)).toList();
+        List<Option> scored = candidates.stream().map(c -> score("", c, spots, when)).toList();
         Option fastest = scored.stream().min(Comparator.comparingDouble(Option::durationS)).orElseThrow();
         // Safer: least exposure, but not absurdly longer (at most 1.6× the fastest time).
         Option safer = scored.stream()
@@ -169,10 +171,9 @@ public class RouteService {
 
     // ---------- scoring ----------
 
-    private Option score(String kind, Raw r, List<CrimeHotspot> spots) {
+    private Option score(String kind, Raw r, List<CrimeHotspot> spots, java.time.ZonedDateTime when) {
         double exposure = 0, inside = 0;
         Set<String> passed = new LinkedHashSet<>();
-        int hour = LocalTime.now(SAST).getHour();
         List<double[]> p = r.path();
         for (int i = 1; i < p.size(); i++) {
             double seg = HotspotDetector.distanceMeters(p.get(i - 1)[0], p.get(i - 1)[1], p.get(i)[0], p.get(i)[1]);
@@ -183,7 +184,7 @@ public class RouteService {
                 double lng = p.get(i - 1)[1] + (p.get(i)[1] - p.get(i - 1)[1]) * f;
                 for (CrimeHotspot h : spots) {
                     if (HotspotDetector.distanceMeters(lat, lng, h.getCenterLatitude(), h.getCenterLongitude()) <= h.getRadiusMeters()) {
-                        double w = h.getIntensityScore() * (peakNow(h.getPeakHours(), hour) ? 1.5 : 1.0);
+                        double w = HotspotDetector.riskAt(h.getIntensityScore(), h.getPeakHours(), h.getPeakDays(), when);
                         exposure += w * seg / steps;
                         inside += seg / steps;
                         passed.add(h.getName());
@@ -193,16 +194,6 @@ public class RouteService {
         }
         return new Option(kind, Math.round(r.distance()), Math.round(r.duration()), simplify(p), (int) Math.round(exposure),
                 Math.round(inside), List.copyOf(passed));
-    }
-
-    private static boolean peakNow(String peak, int hour) {
-        if (peak == null || peak.length() < 2) return false;
-        try {
-            int start = Integer.parseInt(peak.substring(0, 2));
-            return ((hour - start + 24) % 24) < 4;
-        } catch (NumberFormatException e) {
-            return false;
-        }
     }
 
     private Optional<CrimeHotspot> worstHotspot(Raw r, List<CrimeHotspot> spots, Point from, Point to) {

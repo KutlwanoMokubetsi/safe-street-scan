@@ -26,16 +26,18 @@ public class HotspotService {
     private final TransactionTemplate tx;
     private final za.co.crimespot.realtime.RealtimeHub hub;
     private final za.co.crimespot.common.ReadCache cache;
+    private final za.co.crimespot.report.TrustService trust;
 
     public HotspotService(CrimeReportRepository reports, CrimeHotspotRepository hotspots,
                           HotspotProperties props, TransactionTemplate tx, za.co.crimespot.realtime.RealtimeHub hub,
-                          za.co.crimespot.common.ReadCache cache) {
+                          za.co.crimespot.common.ReadCache cache, za.co.crimespot.report.TrustService trust) {
         this.reports = reports;
         this.hotspots = hotspots;
         this.props = props;
         this.tx = tx;
         this.hub = hub;
         this.cache = cache;
+        this.trust = trust;
     }
 
     public List<CrimeHotspot> active() {
@@ -69,7 +71,7 @@ public class HotspotService {
                 now.minus(Duration.ofDays(props.lookbackDays())),
                 EnumSet.of(ReportStatus.PENDING, ReportStatus.VERIFIED));
 
-        var detected = HotspotDetector.detect(recent, props.epsMeters(), props.minReports(), now);
+        var detected = HotspotDetector.detect(recent, props.epsMeters(), props.minReports(), now, trust.hotspotTrust(recent));
 
         hotspots.deleteAllHotspots();
         Instant validUntil = now.plus(Duration.ofHours(props.validHours()));
@@ -84,6 +86,7 @@ public class HotspotService {
             h.setTopCrimeType(d.topType());
             h.setPeakHours(d.peakHours());
             h.setTrend(d.trend().name());
+            h.setPeakDays(d.peakDays());
             h.setGeneratedAt(now);
             h.setValidUntil(validUntil);
             return h;

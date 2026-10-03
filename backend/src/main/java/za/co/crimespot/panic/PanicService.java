@@ -25,10 +25,12 @@ public class PanicService {
     private final NotificationService notifications;
     private final za.co.crimespot.realtime.RealtimeHub hub;
     private final za.co.crimespot.location.LocationShareRepository shares;
+    private final za.co.crimespot.groups.GroupService groups;
 
     public PanicService(PanicAlertRepository alerts, LocationService locations, FriendshipRepository friendships,
                         UserRepository users, NotificationService notifications,
-                        za.co.crimespot.realtime.RealtimeHub hub, za.co.crimespot.location.LocationShareRepository shares) {
+                        za.co.crimespot.realtime.RealtimeHub hub, za.co.crimespot.location.LocationShareRepository shares,
+                        za.co.crimespot.groups.GroupService groups) {
         this.alerts = alerts;
         this.locations = locations;
         this.friendships = friendships;
@@ -36,6 +38,14 @@ public class PanicService {
         this.notifications = notifications;
         this.hub = hub;
         this.shares = shares;
+        this.groups = groups;
+    }
+
+    /** Friends, plus members of groups where this person chose to share their SOS. */
+    private List<UUID> audience(UUID me) {
+        Set<UUID> all = new LinkedHashSet<>(friendships.friendIdsOf(me));
+        all.addAll(groups.sosAudience(me));
+        return new ArrayList<>(all);
     }
 
     private static final com.fasterxml.jackson.databind.ObjectMapper JSON = new com.fasterxml.jackson.databind.ObjectMapper();
@@ -77,13 +87,16 @@ public class PanicService {
         alerts.save(a);
 
         // Friends can follow the person live until the alert is resolved.
-        locations.startPanicShare(me);
+        locations.startPanicShare(me, groups.sosAudience(me));
         if (lat != null && lng != null) locations.update(me, lat, lng, accuracy);
 
-        List<UUID> friends = friendships.friendIdsOf(me);
+        List<UUID> friends = audience(me);
         String name = users.findById(me).map(User::displayName).orElse("A friend");
-        String body = a.getMessage() != null ? a.getMessage() : "Tap to see where they are and call them.";
-        notifications.sendToAll(friends, "🚨 " + name + " needs help", body, "/alerts/" + a.getId(), true);
+        var p = Map.of("name", name);
+        String custom = a.getMessage();
+        notifications.sendLocalized(friends, l -> new String[] {
+                za.co.crimespot.i18n.Messages.t(l, "push.sos.title", p),
+                custom != null ? custom : za.co.crimespot.i18n.Messages.t(l, "push.sos.body") }, "/alerts/" + a.getId(), true);
         List<UUID> to = new ArrayList<>(friends);
         to.add(me);
         hub.toUsers(to, "live");
@@ -102,12 +115,14 @@ public class PanicService {
         locations.stop(me, ShareReason.PANIC);
 
         String name = users.findById(me).map(User::displayName).orElse("Your friend");
-        notifications.sendToAll(friendships.friendIdsOf(me), name + " is safe",
-                name + " ended their emergency alert.", "/alerts/" + a.getId(), false);
-        List<UUID> to = new ArrayList<>(friendships.friendIdsOf(me));
+        var p = Map.of("name", name);
+        notifications.sendLocalized(audience(me), l -> new String[] {
+                za.co.crimespot.i18n.Messages.t(l, "push.safe.title", p), za.co.crimespot.i18n.Messages.t(l, "push.safe.body", p) },
+                "/alerts/" + a.getId(), false);
+        List<UUID> to = new ArrayList<>(audience(me));
         to.add(me);
         hub.toUsers(to, "live");
-        hub.notice(friendships.friendIdsOf(me), name + " is safe");
+        hub.noticeLocalized(audience(me), l -> za.co.crimespot.i18n.Messages.t(l, "push.safe.title", p));
         return a;
     }
 
@@ -116,14 +131,17 @@ public class PanicService {
     }
 
     public List<PanicAlert> activeAmongFriends(UUID me) {
-        List<UUID> friends = friendships.friendIdsOf(me);
+        Set<UUID> sources = new LinkedHashSet<>(friendships.friendIdsOf(me));
+        sources.addAll(groups.sosSourcesFor(me));
+        List<UUID> friends = new ArrayList<>(sources);
         return friends.isEmpty() ? List.of() : alerts.findByUserIdInAndStatusOrderByCreatedAtDesc(friends, PanicStatus.ACTIVE);
     }
 
     /** Loads an alert for its owner or one of their friends. */
     public PanicAlert loadFor(UUID viewer, UUID alertId) {
         PanicAlert a = alerts.findById(alertId).orElseThrow(() -> new NotFoundException("Alert not found"));
-        if (!a.getUserId().equals(viewer) && !friendships.friendIdsOf(viewer).contains(a.getUserId())) {
+        if (!a.getUserId().equals(viewer) && !friendships.friendIdsOf(viewer).contains(a.getUserId())
+                && !groups.sosSourcesFor(viewer).contains(a.getUserId())) {
             throw new AccessDeniedException("This alert isn't shared with you");
         }
         return a;
@@ -143,7 +161,9 @@ public class PanicService {
             }
         }
         za.co.crimespot.user.EmergencyInfo emergency = null;
-        if (a.getStatus() == PanicStatus.ACTIVE && owner.isEmergencyConsent() && owner.getEmergencyInfoJson() != null) {
+        // The emergency card is for friends only (that's what the person agreed to), not group members.
+        boolean friendOrSelf = viewer.equals(owner.getId()) || friendships.friendIdsOf(owner.getId()).contains(viewer);
+        if (friendOrSelf && a.getStatus() == PanicStatus.ACTIVE && owner.isEmergencyConsent() && owner.getEmergencyInfoJson() != null) {
             try {
                 emergency = JSON.readValue(owner.getEmergencyInfoJson(), za.co.crimespot.user.EmergencyInfo.class);
             } catch (Exception ignored) { }

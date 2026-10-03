@@ -25,16 +25,19 @@ public class LocationService {
     private final UserRepository users;
     private final NotificationService notifications;
     private final za.co.crimespot.realtime.RealtimeHub hub;
+    private final org.springframework.context.ApplicationEventPublisher events;
 
     public LocationService(LocationShareRepository shares, UserLocationRepository locations,
                            FriendshipRepository friendships, UserRepository users,
-                           NotificationService notifications, za.co.crimespot.realtime.RealtimeHub hub) {
+                           NotificationService notifications, za.co.crimespot.realtime.RealtimeHub hub,
+                           org.springframework.context.ApplicationEventPublisher events) {
         this.shares = shares;
         this.locations = locations;
         this.friendships = friendships;
         this.users = users;
         this.notifications = notifications;
         this.hub = hub;
+        this.events = events;
     }
 
     /** Everyone currently allowed to see this user, plus the user's own devices. */
@@ -80,18 +83,30 @@ public class LocationService {
         hub.toUsers(previous, "live");
 
         String name = users.findById(me).map(User::displayName).orElse("A friend");
-        String until = minutes == null ? "until they stop" : "for the next " + (minutes == 60 ? "hour" : "8 hours");
-        notifications.sendToAll(viewers, name + " is sharing their location",
-                "You can see where they are " + until + ".", "/live", false);
+        var p = java.util.Map.of("name", name);
+        notifications.sendLocalized(viewers, l -> new String[] {
+                za.co.crimespot.i18n.Messages.t(l, "push.share.title", p), za.co.crimespot.i18n.Messages.t(l, "push.share.body") }, "/live", false);
         return s;
     }
 
     @Transactional
-    public LocationShare startPanicShare(UUID me) {
+    public LocationShare startPanicShare(UUID me, Set<UUID> extraViewers) {
         Instant now = Instant.now();
         endActive(me, ShareReason.PANIC, now);
-        LocationShare s = newShare(me, ShareReason.PANIC, new HashSet<>(friendships.friendIdsOf(me)), now, null);
+        Set<UUID> viewers = new HashSet<>(friendships.friendIdsOf(me));
+        viewers.addAll(extraViewers);
+        LocationShare s = newShare(me, ShareReason.PANIC, viewers, now, null);
         hub.toUsers(audience(me), "live");
+        return s;
+    }
+
+    /** Escort sharing: only the escort sees you, for up to 6 hours or until the walk ends. */
+    @Transactional
+    public LocationShare startEscortShare(UUID walker, UUID escort) {
+        Instant now = Instant.now();
+        endActive(walker, ShareReason.ESCORT, now);
+        LocationShare s = newShare(walker, ShareReason.ESCORT, new HashSet<>(Set.of(escort)), now, now.plus(Duration.ofHours(6)));
+        hub.toUsers(List.of(walker, escort), "live");
         return s;
     }
 
@@ -104,8 +119,10 @@ public class LocationService {
         Set<UUID> to = audience(me);
         stop(me, ShareReason.MANUAL);
         String name = users.findById(me).map(User::displayName).orElse("Your friend");
-        notifications.sendToAll(viewers, name + " checked in safely", name + " has arrived and stopped sharing.", "/live", false);
-        hub.notice(viewers, name + " checked in safely");
+        var p = java.util.Map.of("name", name);
+        notifications.sendLocalized(viewers, l -> new String[] {
+                za.co.crimespot.i18n.Messages.t(l, "push.checkin.title", p), za.co.crimespot.i18n.Messages.t(l, "push.checkin.body", p) }, "/live", false);
+        hub.noticeLocalized(viewers, l -> za.co.crimespot.i18n.Messages.t(l, "push.checkin.title", p));
         hub.toUsers(to, "live");
     }
 
@@ -134,6 +151,7 @@ public class LocationService {
         loc.setUpdatedAt(Instant.now());
         locations.save(loc);
         hub.toUsers(audience(me), "live");
+        events.publishEvent(new LocationUpdated(me, lat, lng));
     }
 
     public Optional<LocationShare> active(UUID me, ShareReason reason) {

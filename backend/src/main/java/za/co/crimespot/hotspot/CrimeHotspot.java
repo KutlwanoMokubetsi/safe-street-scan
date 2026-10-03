@@ -41,6 +41,9 @@ public class CrimeHotspot {
 
     private String trend;
 
+    @Column(name = "peak_days")
+    private String peakDays;
+
     @Column(name = "generated_at", nullable = false)
     private Instant generatedAt;
 
@@ -64,6 +67,8 @@ public class CrimeHotspot {
     public void setTopCrimeType(CrimeType v) { this.topCrimeType = v; }
     public String getPeakHours() { return peakHours; }
     public void setPeakHours(String v) { this.peakHours = v; }
+    public String getPeakDays() { return peakDays; }
+    public void setPeakDays(String v) { this.peakDays = v; }
     public String getTrend() { return trend; }
     public void setTrend(String v) { this.trend = v; }
     public Instant getGeneratedAt() { return generatedAt; }

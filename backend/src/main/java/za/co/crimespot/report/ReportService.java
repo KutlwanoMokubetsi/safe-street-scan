@@ -27,14 +27,17 @@ public class ReportService {
     private final AreaAlertService areaAlerts;
     private final za.co.crimespot.common.ReadCache cache;
     private final za.co.crimespot.moderation.ContentFilter filter;
+    private final TrustService trust;
 
     public ReportService(CrimeReportRepository reports, za.co.crimespot.realtime.RealtimeHub hub, AreaAlertService areaAlerts,
-                         za.co.crimespot.common.ReadCache cache, za.co.crimespot.moderation.ContentFilter filter) {
+                         za.co.crimespot.common.ReadCache cache, za.co.crimespot.moderation.ContentFilter filter,
+                         TrustService trust) {
         this.reports = reports;
         this.hub = hub;
         this.areaAlerts = areaAlerts;
         this.cache = cache;
         this.filter = filter;
+        this.trust = trust;
     }
 
     public record CreateCommand(CrimeType crimeType, String description, String locationName,
@@ -49,7 +52,9 @@ public class ReportService {
         if (cmd.occurredAt().isBefore(now.minus(Duration.ofDays(365)))) {
             throw new BadRequestException("Only incidents from the past year can be reported");
         }
-        if (reports.countByUserIdAndCreatedAtAfter(me.id(), now.minus(Duration.ofHours(1))) >= MAX_REPORTS_PER_HOUR) {
+        long lastHour = reports.countByUserIdAndCreatedAtAfter(me.id(), now.minus(Duration.ofHours(1)));
+        trust.requireNotRateLimited(me.id(), lastHour);
+        if (lastHour >= MAX_REPORTS_PER_HOUR) {
             throw new BadRequestException("You've sent a lot of reports in the past hour. Try again later.");
         }
         var desc = filter.check(cmd.description());

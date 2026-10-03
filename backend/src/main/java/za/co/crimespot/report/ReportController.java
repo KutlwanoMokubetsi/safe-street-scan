@@ -17,8 +17,32 @@ import java.util.UUID;
 public class ReportController {
 
     private final ReportService service;
+    private final TrustService trust;
 
-    public ReportController(ReportService service) { this.service = service; }
+    public ReportController(ReportService service, TrustService trust) {
+        this.service = service;
+        this.trust = trust;
+    }
+
+    /** Adds confirmation counts and the trusted-reporter badge in one query per list. */
+    private List<ReportDto> enrich(List<CrimeReport> list, AuthUser me, boolean forModerator) {
+        TrustService.Confirmations c = trust.confirmations(list.stream().map(CrimeReport::getId).toList(), me.id());
+        return list.stream().map(r -> {
+            TrustService.Level lvl = trust.level(r.getUserId());
+            return ReportDto.from(r, me.id()).with(c.counts().getOrDefault(r.getId(), 0), c.mine().contains(r.getId()),
+                    "USER".equals(r.getSource()) && lvl == TrustService.Level.TRUSTED, forModerator ? lvl.name() : null);
+        }).toList();
+    }
+
+    @PostMapping("/{id}/confirm")
+    public java.util.Map<String, Integer> confirm(@AuthenticationPrincipal AuthUser me, @PathVariable UUID id) {
+        return java.util.Map.of("confirmations", trust.confirm(me, id));
+    }
+
+    @DeleteMapping("/{id}/confirm")
+    public java.util.Map<String, Integer> unconfirm(@AuthenticationPrincipal AuthUser me, @PathVariable UUID id) {
+        return java.util.Map.of("confirmations", trust.unconfirm(me, id));
+    }
 
     public record CreateReportRequest(
             @NotNull CrimeType crimeType,
@@ -37,24 +61,23 @@ public class ReportController {
                                   @RequestParam double minLng, @RequestParam double maxLng,
                                   @RequestParam(defaultValue = "30") int days,
                                   @RequestParam(defaultValue = "false") boolean verifiedOnly) {
-        return service.inArea(minLat, maxLat, minLng, maxLng, days, verifiedOnly).stream()
-                .map(r -> ReportDto.from(r, me.id())).toList();
+        return enrich(service.inArea(minLat, maxLat, minLng, maxLng, days, verifiedOnly), me, false);
     }
 
     @GetMapping("/recent")
     public List<ReportDto> recent(@AuthenticationPrincipal AuthUser me,
                                   @RequestParam(defaultValue = "10") int limit) {
-        return service.recent(limit).stream().map(r -> ReportDto.from(r, me.id())).toList();
+        return enrich(service.recent(limit), me, false);
     }
 
     @GetMapping("/{id}")
     public ReportDto one(@AuthenticationPrincipal AuthUser me, @PathVariable UUID id) {
-        return ReportDto.from(service.get(me, id), me.id());
+        return enrich(List.of(service.get(me, id)), me, me.canModerate()).get(0);
     }
 
     @GetMapping("/mine")
     public List<ReportDto> mine(@AuthenticationPrincipal AuthUser me) {
-        return service.mine(me).stream().map(r -> ReportDto.from(r, me.id())).toList();
+        return enrich(service.mine(me), me, false);
     }
 
     @PostMapping
@@ -68,7 +91,11 @@ public class ReportController {
     @GetMapping("/pending")
     @PreAuthorize("hasAnyRole('MODERATOR','ADMIN')")
     public List<ReportDto> pending(@AuthenticationPrincipal AuthUser me) {
-        return service.pendingQueue().stream().map(r -> ReportDto.from(r, me.id())).toList();
+        // Most-confirmed first, then trusted reporters: the likeliest genuine reports get reviewed first.
+        return enrich(service.pendingQueue(), me, true).stream()
+                .sorted(java.util.Comparator.comparingInt(ReportDto::confirmations).reversed()
+                        .thenComparing(d -> !"TRUSTED".equals(d.reporterTrust())))
+                .toList();
     }
 
     @PatchMapping("/{id}/status")

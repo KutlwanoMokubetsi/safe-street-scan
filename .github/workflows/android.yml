@@ -1,0 +1,89 @@
+name: Android app
+
+on:
+  push:
+    branches: [main]
+    paths: ['mobile/**', '.github/workflows/android.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Generate Android project
+        run: |
+          flutter create --platforms=android --org za.co.crimespot --project-name crimespot .
+          rm -f test/widget_test.dart
+
+      - name: Firebase config (optional)
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -n "$GOOGLE_SERVICES_JSON" ]; then echo "$GOOGLE_SERVICES_JSON" > android/app/google-services.json; fi
+
+      - name: Signing key (optional)
+        env:
+          KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          STORE_PW: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PW: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -n "$KEYSTORE" ]; then
+            echo "$KEYSTORE" | base64 -d > android/app/upload.jks
+            printf "storeFile=upload.jks\nstorePassword=%s\nkeyAlias=%s\nkeyPassword=%s\n" "$STORE_PW" "$KEY_ALIAS" "$KEY_PW" > android/key.properties
+          fi
+
+      - name: Configure Android project
+        run: python3 tool/patch_android.py
+
+      - name: Get packages
+        run: flutter pub get
+
+      - name: App icon
+        run: dart run flutter_launcher_icons
+
+      # Errors become GitHub annotations, readable on the run page and via the API.
+      - name: Analyze
+        run: |
+          dart analyze --format=machine lib > analyze.txt 2>&1 || true
+          grep '^ERROR|' analyze.txt | while IFS='|' read -r sev type code file line col len msg; do
+            echo "::error file=mobile/${file#$PWD/},line=$line,col=$col::$code: $msg"
+          done
+          if grep -q '^ERROR|' analyze.txt; then exit 1; fi
+
+      - name: Build APKs
+        run: |
+          flutter build apk --release --split-per-abi
+          flutter build apk --release
+          mkdir -p out
+          cp build/app/outputs/flutter-apk/app-release.apk out/crimespot.apk
+          cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk out/crimespot-arm64.apk
+          cp build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk out/crimespot-armv7.apk
+          ls -la out
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view android-latest >/dev/null 2>&1 || gh release create android-latest \
+            --title "CrimeSpot for Android" \
+            --notes "Latest Android build. Download crimespot.apk (works on all phones), or crimespot-arm64.apk / crimespot-armv7.apk for a smaller download."
+          gh release upload android-latest out/*.apk --clobber

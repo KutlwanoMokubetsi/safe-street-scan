@@ -155,6 +155,70 @@ const T: Record<string, [string, string, string, string]> = {
   'login.create': ['Create an account with email', "Skep 'n rekening met e-pos", 'Vula i-akhawunti nge-imeyili', 'Yenza iakhawunti nge-imeyile'],
   'login.back': ['← Back to home', '← Terug na tuis', '← Buyela ekhaya', '← Buyela ekhaya'],
 
+  'nav.groups': ['Groups', 'Groepe', 'Amaqembu', 'Amaqela'],
+  'common.apiDown': ["CrimeSpot's server isn't responding. If you're in danger, call 10111. SOS will offer to text your friends.",
+    'CrimeSpot se bediener reageer nie. As jy in gevaar is, bel 10111. SOS sal aanbied om jou vriende te SMS.',
+    'Iseva ye-CrimeSpot ayiphenduli. Uma usengozini, shayela u-10111. I-SOS izokunikeza ukuthumela abangane i-SMS.',
+    'Iseva ye-CrimeSpot ayiphenduli. Ukuba usengozini, tsalela u-10111. I-SOS iya kunika ukuthumela abahlobo i-SMS.'],
+
+  'seen.button': ['Seen it too', 'Ek het dit ook gesien', 'Nami ngikubonile', 'Nam ndikubonile'],
+  'seen.count': ['{n} confirmed', '{n} bevestig', '{n} baqinisekisile', '{n} baqinisekisile'],
+  'seen.trusted': ['Trusted reporter', 'Betroubare verslaggewer', 'Umbiki othembekile', 'Umxeli othembekileyo'],
+  'risk.now': ['Risk now', 'Risiko nou', 'Ingozi manje', 'Umngcipheko ngoku'],
+  'risk.weekends': ['mostly weekends', 'meestal naweke', 'kakhulu ngezimpelasonto', 'ikakhulu ngeempelaveki'],
+  'risk.weekdays': ['mostly weekdays', 'meestal weeksdae', 'kakhulu phakathi nesonto', 'ikakhulu phakathi evekini'],
+
+  'route.leave': ['Leaving', 'Vertrek', 'Ukuhamba', 'Ukuhamba'],
+  'route.leave1h': ['In 1 hour', 'Oor 1 uur', 'Ngemva kwehora eli-1', 'Emva kweyure e-1'],
+  'route.tonight': ['Tonight {t}', 'Vanaand {t}', 'Kusihlwa {t}', 'Ngokuhlwa {t}'],
+
+  'walk.title': ['Walk with me', 'Stap saam met my', 'Hamba nami', 'Hamba nam'],
+  'walk.intro': ["Ask a friend to watch over you until you arrive. If you stop moving or lose signal, they're told.",
+    'Vra \'n vriend om oor jou te waak tot jy aankom. As jy ophou beweeg of sein verloor, word hulle ingelig.',
+    'Cela umngane akubheke uze ufike. Uma uyeka ukunyakaza noma ulahlekelwa yisiginali, uyaziswa.',
+    'Cela umhlobo akujonge ude ufike. Ukuba uyeka ukushukuma okanye ulahlekelwe ngumqondiso, uyaziswa.'],
+  'walk.ask': ['Ask {name}', 'Vra {name}', 'Cela u-{name}', 'Cela u-{name}'],
+  'walk.waiting': ['Waiting for {name} to accept…', 'Wag vir {name} om te aanvaar…', 'Silindele u-{name} ukuthi amukele…', 'Silindele u-{name} ukuba amkele…'],
+  'walk.with': ['{name} is walking with you', '{name} stap saam met jou', 'U-{name} uhamba nawe', 'U-{name} uhamba nawe'],
+  'walk.incoming': ['{name} wants you to walk with them', '{name} wil hê jy moet saam met hulle stap', 'U-{name} ufuna uhambe naye', 'U-{name} ufuna uhambe naye'],
+  'walk.accept': ['Walk with them', 'Stap saam', 'Hamba naye', 'Hamba naye'],
+  'walk.decline': ["Can't right now", 'Nie nou nie', 'Angikwazi manje', 'Andikwazi ngoku'],
+  'walk.escorting': ["You're walking with {name}", 'Jy stap saam met {name}', 'Uhamba no-{name}', 'Uhamba no-{name}'],
+  'walk.raise': ['Raise alert for {name}', 'Stuur waarskuwing vir {name}', 'Thumela isexwayiso sika-{name}', 'Thumela isilumkiso sika-{name}'],
+  'walk.raiseConfirm': ['Send an emergency alert to all of {name}\'s friends?', 'Stuur \'n noodwaarskuwing aan al {name} se vriende?',
+    'Thumela isexwayiso esiphuthumayo kubo bonke abangane baka-{name}?', 'Thumela isilumkiso sikaxakeka kubo bonke abahlobo baka-{name}?'],
+  'walk.still': ["You haven't moved for a few minutes. {name} was told.", 'Jy het \'n paar minute nie beweeg nie. {name} is ingelig.',
+    'Awunyakazanga imizuzu embalwa. U-{name} wazisiwe.', 'Akushukumanga imizuzu embalwa. U-{name} waziswe.'],
+  'walk.ok': ["I'm OK", 'Ek is oukei', 'Ngiyaphila', 'Ndiphilile'],
+  'walk.stillEscort': ["{name} hasn't moved for 3 minutes", '{name} het 3 minute lank nie beweeg nie', 'U-{name} akanyakazanga imizuzu emi-3', 'U-{name} akashukumanga imizuzu emi-3'],
+  'walk.lostEscort': ['Lost contact with {name}', 'Kontak met {name} verloor', 'Ukuxhumana no-{name} kulahlekile', 'Unxibelelwano no-{name} lulahlekile'],
+  'walk.end': ['End walk', 'Beëindig stap', 'Qeda ukuhamba', 'Phelisa ukuhamba'],
+
+  'outage.button': ['Power out?', 'Krag af?', 'Ugesi ucimile?', 'Umbane ucimile?'],
+  'outage.out': ["Power's out here", 'Die krag is hier af', 'Ugesi ucimile lapha', 'Umbane ucimile apha'],
+  'outage.back': ["Power's back", 'Die krag is terug', 'Ugesi ubuyile', 'Umbane ubuyile'],
+  'outage.zone': ['Power out · {n} people · since {t}', 'Krag af · {n} mense · sedert {t}', 'Ugesi ucimile · abantu abangu-{n} · kusukela ngo-{t}', 'Umbane ucimile · abantu aba-{n} · ukusukela ngo-{t}'],
+  'outage.hotspot': ['Near the {name} hotspot. Stay alert.', 'Naby die {name}-brandpunt. Bly waaksaam.', 'Eduze nendawo eyingozi yase-{name}. Qaphela.', 'Kufutshane nendawo enobungozi yase-{name}. Lumka.'],
+  'outage.help': ['Zones appear when 3 people nearby report an outage.', 'Sones verskyn wanneer 3 mense naby \'n onderbreking aanmeld.',
+    'Izindawo ziyavela uma abantu abangu-3 abaseduze bebika ukucima kukagesi.', 'Iindawo ziyavela xa abantu aba-3 abakufutshane bexela ukucima kombane.'],
+
+  'data.title': ['Your data', 'Jou data', 'Idatha yakho', 'Idatha yakho'],
+  'data.intro': ['Download everything CrimeSpot holds about you, or delete your account.', 'Laai alles af wat CrimeSpot oor jou hou, of skrap jou rekening.',
+    'Landa konke i-CrimeSpot enakho ngawe, noma ususe i-akhawunti yakho.', 'Khuphela yonke into i-CrimeSpot enayo ngawe, okanye ucime iakhawunti yakho.'],
+  'data.download': ['Download my data', 'Laai my data af', 'Landa idatha yami', 'Khuphela idatha yam'],
+  'data.delete': ['Delete my account', 'Skrap my rekening', 'Susa i-akhawunti yami', 'Cima iakhawunti yam'],
+  'data.deleteConfirm': ['This permanently deletes your account, reports, comments, alerts and friends. Type DELETE to confirm.',
+    'Dit skrap jou rekening, verslae, kommentaar, waarskuwings en vriende permanent. Tik DELETE om te bevestig.',
+    'Lokhu kususa unomphela i-akhawunti yakho, imibiko, amazwana, izexwayiso nabangane. Bhala u-DELETE ukuze uqinisekise.',
+    'Oku kucima ngonaphakade iakhawunti yakho, iingxelo, izimvo, izilumkiso nabahlobo. Chwetheza u-DELETE ukuqinisekisa.'],
+
+  'groups.title': ['Groups', 'Groepe', 'Amaqembu', 'Amaqela'],
+  'groups.intro': ['Neighbourhood watches, estates and community policing forums. Share alerts and keep an eye on your area together.', '', '', ''],
+  'groups.create': ['Create a group', 'Skep \'n groep', 'Dala iqembu', 'Yenza iqela'],
+  'groups.join': ['Join with a code', 'Sluit aan met \'n kode', 'Joyina ngekhodi', 'Joyina ngekhowudi'],
+  'groups.sosShare': ['Send my SOS alerts to this group', 'Stuur my SOS-waarskuwings na hierdie groep', 'Thumela izexwayiso zami ze-SOS kuleli qembu', 'Thumela izilumkiso zam ze-SOS kweli qela'],
+  'groups.sosShareNote': ['Members will see your alert, location and phone number during an SOS. Your emergency card stays friends-only.', '', '', ''],
+
   'crime.ROBBERY': ['Robbery', 'Roof', 'Ukuphanga', 'Ukuphanga'],
   'crime.HIJACKING': ['Hijacking', 'Kaping', 'Ukudunwa kwemoto', 'Ukuxhwilwa kwesithuthi'],
   'crime.ASSAULT': ['Assault', 'Aanranding', 'Ukuhlaselwa', 'Uhlaselo'],
@@ -196,8 +260,12 @@ export function speechLang(): string { return LANGS.find(l => l.code === current
 @Injectable({ providedIn: 'root' })
 export class I18n {
   readonly lang = current.asReadonly();
+  /** Called when the language changes, to save it on the account (for notifications). */
+  onChange?: (l: Lang) => void;
+
   set(l: Lang): void {
     current.set(l);
+    this.onChange?.(l);
     document.documentElement.lang = l;
     try { localStorage.setItem('crimespot.lang', l); } catch { /* ignore */ }
   }

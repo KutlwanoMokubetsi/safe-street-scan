@@ -4,6 +4,9 @@ import {
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { PreloadAllModules, provideRouter, withComponentInputBinding, withInMemoryScrolling, withPreloading, withViewTransitions } from '@angular/router';
 import { provideServiceWorker } from '@angular/service-worker';
+import { ErrorHandler } from '@angular/core';
+import * as Sentry from '@sentry/angular';
+import { environment } from '../environments/environment';
 
 import { routes } from './app.routes';
 import { authInterceptor } from './core/auth.interceptor';
@@ -12,6 +15,7 @@ import { initKeycloak } from './core/keycloak';
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
+    ...(environment.sentryDsn ? [{ provide: ErrorHandler, useValue: Sentry.createErrorHandler() }] : []),
     provideZoneChangeDetection({ eventCoalescing: true }),
     // Keycloak must finish before routing so guards know whether you're signed in.
     provideAppInitializer(() => initKeycloak()),

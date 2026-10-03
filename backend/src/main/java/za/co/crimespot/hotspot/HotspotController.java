@@ -19,17 +19,22 @@ public class HotspotController {
 
     public record HotspotDto(UUID id, String name, double centerLatitude, double centerLongitude,
                              int radiusMeters, double intensityScore, int crimeCount,
-                             CrimeType topCrimeType, String peakHours, String trend, Instant generatedAt) {
-        static HotspotDto from(CrimeHotspot h) {
+                             CrimeType topCrimeType, String peakHours, String trend, String peakDays, double riskNow,
+                             Instant generatedAt) {
+        static HotspotDto from(CrimeHotspot h, java.time.ZonedDateTime when) {
             return new HotspotDto(h.getId(), h.getName(), h.getCenterLatitude(), h.getCenterLongitude(),
                     h.getRadiusMeters(), h.getIntensityScore(), h.getCrimeCount(),
-                    h.getTopCrimeType(), h.getPeakHours(), h.getTrend(), h.getGeneratedAt());
+                    h.getTopCrimeType(), h.getPeakHours(), h.getTrend(), h.getPeakDays(),
+                    za.co.crimespot.hotspot.HotspotDetector.riskAt(h.getIntensityScore(), h.getPeakHours(), h.getPeakDays(), when),
+                    h.getGeneratedAt());
         }
     }
 
     @GetMapping
-    public List<HotspotDto> active() {
-        return service.active().stream().map(HotspotDto::from).toList();
+    /** riskNow is computed for {@code at} (default: now), so the app can show risk for a planned time. */
+    public List<HotspotDto> active(@RequestParam(required = false) Instant at) {
+        java.time.ZonedDateTime when = (at == null ? Instant.now() : at).atZone(java.time.ZoneOffset.UTC);
+        return service.active().stream().map(h -> HotspotDto.from(h, when)).toList();
     }
 
     @PostMapping("/regenerate")

@@ -9,12 +9,23 @@ import { crimeColor, crimeLabel, riskLevel, timeAgo } from '../core/crime-types'
 import { Hotspot, News, Report, Stats } from '../core/models';
 import { currentPosition } from '../core/geo';
 import { errorMessage } from '../core/auth.interceptor';
+import { APK, isAndroid } from '../core/downloads';
 
 @Component({
   selector: 'app-dashboard',
   imports: [RouterLink],
   template: `
     <div class="page">
+      @if (showAppBanner()) {
+        <div class="app-banner" role="region" aria-label="Android app">
+          <div>
+            <strong>Get the CrimeSpot app</strong>
+            <span>Location sharing and SOS keep working with your screen off.</span>
+          </div>
+          <a class="btn btn-vest btn-sm" [href]="apk">Download</a>
+          <button type="button" class="x" (click)="hideAppBanner()" aria-label="Dismiss">×</button>
+        </div>
+      }
       <div class="page-head">
         <div>
           <h1>Hi {{ firstName() }}</h1>
@@ -142,6 +153,10 @@ import { errorMessage } from '../core/auth.interceptor';
     .risk { font-weight: 600; font-size: 0.9rem; white-space: nowrap; }
     .desc-link { text-decoration: none; color: inherit; display: block; }
     .desc-link:hover .desc { text-decoration: underline; }
+    .app-banner { display: flex; align-items: center; gap: 12px; padding: 12px 14px; margin-bottom: 16px; border-radius: var(--radius-m); background: var(--ink); color: #fff; }
+    .app-banner div { flex: 1; display: grid; gap: 2px; }
+    .app-banner span { color: #C9D1D9; font-size: .88rem; }
+    .app-banner .x { background: none; border: 0; color: #C9D1D9; font-size: 1.5rem; line-height: 1; cursor: pointer; padding: 4px 6px; }
     .insight { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 2px; }
     .news { margin-top: 24px; }
     .news-list li { padding: 12px 16px; border-bottom: 1px solid var(--line); }
@@ -160,6 +175,14 @@ import { errorMessage } from '../core/auth.interceptor';
   `,
 })
 export class Dashboard implements OnInit {
+  protected readonly apk = APK.universal;
+  /** Android browser users only, until dismissed. */
+  protected readonly showAppBanner = signal(isAndroid() && !localStorage.getItem('crimespot.appBannerHidden'));
+  hideAppBanner(): void {
+    try { localStorage.setItem('crimespot.appBannerHidden', '1'); } catch { /* ignore */ }
+    this.showAppBanner.set(false);
+  }
+
   private api = inject(ApiService);
   private rt = inject(RealtimeService).on('reports', 'hotspots').pipe(takeUntilDestroyed());
   private auth = inject(AuthService);

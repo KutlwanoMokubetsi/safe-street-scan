@@ -50,6 +50,9 @@ public class User {
     @Column(name = "emergency_consent", nullable = false)
     private boolean emergencyConsent;
 
+    @Column(nullable = false)
+    private String lang = "en";
+
     @Column(name = "friend_code", nullable = false, unique = true)
     private String friendCode;
 
@@ -91,6 +94,8 @@ public class User {
     public void setEmergencyInfoJson(String v) { this.emergencyInfoJson = v; }
     public boolean isEmergencyConsent() { return emergencyConsent; }
     public void setEmergencyConsent(boolean v) { this.emergencyConsent = v; }
+    public String getLang() { return lang; }
+    public void setLang(String v) { this.lang = v; }
     public Role getRole() { return role; }
     public void setRole(Role role) { this.role = role; }
     public Instant getCreatedAt() { return createdAt; }

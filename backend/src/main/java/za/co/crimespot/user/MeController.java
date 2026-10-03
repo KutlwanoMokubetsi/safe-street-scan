@@ -14,10 +14,12 @@ public class MeController {
 
     private final UserRepository users;
     private final com.fasterxml.jackson.databind.ObjectMapper json;
+    private final za.co.crimespot.i18n.Localizer localizer;
 
-    public MeController(UserRepository users, com.fasterxml.jackson.databind.ObjectMapper json) {
+    public MeController(UserRepository users, com.fasterxml.jackson.databind.ObjectMapper json, za.co.crimespot.i18n.Localizer localizer) {
         this.users = users;
         this.json = json;
+        this.localizer = localizer;
     }
 
     public record EmergencyCard(boolean consent, @jakarta.validation.Valid EmergencyInfo info) {}
@@ -56,7 +58,8 @@ public class MeController {
             @jakarta.validation.constraints.DecimalMin("-90") @jakarta.validation.constraints.DecimalMax("90") Double homeLatitude,
             @jakarta.validation.constraints.DecimalMin("-180") @jakarta.validation.constraints.DecimalMax("180") Double homeLongitude,
             Integer alertRadiusM,
-            Boolean clearHome) {}
+            Boolean clearHome,
+            @Pattern(regexp = "^(en|af|zu|xh)$") String lang) {}
 
     private static final java.util.Set<Integer> RADII = java.util.Set.of(0, 1000, 2000, 5000);
 
@@ -70,6 +73,7 @@ public class MeController {
         User u = load(me);
         if (body.fullName() != null) u.setFullName(body.fullName().isBlank() ? null : body.fullName().trim());
         if (body.phone() != null) u.setPhone(body.phone().isBlank() ? null : body.phone().trim());
+        if (body.lang() != null) { u.setLang(body.lang()); localizer.forget(u.getId()); }
         if (Boolean.TRUE.equals(body.clearHome())) { u.setHomeLat(null); u.setHomeLng(null); u.setAlertRadiusM(0); }
         if (body.homeLatitude() != null && body.homeLongitude() != null) {
             // Rounded to ~100 m: precise enough for area alerts without storing an exact address.

@@ -35,7 +35,8 @@
       "baseUrl": "/",
       "redirectUris": [
         "${CRIMESPOT_WEB_URL:http://localhost:4200}/*",
-        "http://localhost:4200/*"
+        "http://localhost:4200/*",
+        "za.co.crimespot.app:/oauth2redirect"
       ],
       "webOrigins": [
         "${CRIMESPOT_WEB_URL:http://localhost:4200}",
@@ -43,7 +44,7 @@
       ],
       "attributes": {
         "pkce.code.challenge.method": "S256",
-        "post.logout.redirect.uris": "${CRIMESPOT_WEB_URL:http://localhost:4200}/*##http://localhost:4200/*"
+        "post.logout.redirect.uris": "${CRIMESPOT_WEB_URL:http://localhost:4200}/*##http://localhost:4200/*##za.co.crimespot.app:/oauth2redirect"
       },
       "protocolMappers": [
         {

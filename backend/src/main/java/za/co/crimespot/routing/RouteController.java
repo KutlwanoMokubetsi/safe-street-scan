@@ -20,11 +20,13 @@ public class RouteController {
         this.places = places;
     }
 
-    public record RouteRequest(@NotNull @Valid RouteService.Point from, @NotNull @Valid RouteService.Point to, boolean walk) {}
+    /** departAt (optional): plan for a later time, e.g. "tonight at 21:00"; hotspot risk depends on time. */
+    public record RouteRequest(@NotNull @Valid RouteService.Point from, @NotNull @Valid RouteService.Point to, boolean walk,
+                               java.time.Instant departAt) {}
 
     @PostMapping("/routes")
     public RouteService.Plan plan(@RequestBody @Valid RouteRequest req) {
-        return routes.plan(req.from(), req.to(), req.walk());
+        return routes.plan(req.from(), req.to(), req.walk(), req.departAt());
     }
 
     /** Place search for the destination box (Nominatim, South Africa only, cached and rate-limited). */

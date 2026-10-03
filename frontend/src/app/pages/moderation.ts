@@ -97,6 +97,10 @@ import { ToastService } from '../core/toast.service';
                   <span class="type-tag">{{ label(r.crimeType) }}</span>
                   <p class="desc">{{ r.description }}</p>
                   <p class="muted small">
+                    @if (r.confirmations) { <strong class="conf">👁 {{ r.confirmations }} confirmed</strong> · }
+                    @if (r.reporterTrust === 'TRUSTED') { <strong class="tr-ok">Trusted reporter</strong> · }
+                    @if (r.reporterTrust === 'LOW') { <strong class="tr-low">Low-trust reporter</strong> · }
+                    @if (r.reporterTrust === 'NEW') { <span>New reporter</span> · }
                     {{ r.locationName || 'Pinned location' }} · happened {{ ago(r.occurredAt) }} · sent {{ ago(r.createdAt) }}
                     · <a routerLink="/map" [queryParams]="{ lat: r.latitude, lng: r.longitude }">map</a>
                   </p>
@@ -147,6 +151,9 @@ import { ToastService } from '../core/toast.service';
     .desc { margin: 6px 0 4px; overflow-wrap: anywhere; }
     .acts { display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; }
     .users { margin-top: 24px; }
+    .conf { color: var(--ink); }
+    .tr-ok { color: var(--safe); }
+    .tr-low { color: var(--risk); }
     .sugg { margin-bottom: 24px; }
     .intro { padding: 10px 16px 0; }
     .headline { font-weight: 600; text-decoration: none; }

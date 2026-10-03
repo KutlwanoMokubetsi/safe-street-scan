@@ -7,13 +7,14 @@ import { errorMessage } from '../core/auth.interceptor';
 import { timeAgo } from '../core/crime-types';
 import { DEFAULT_CENTER, createMap, escapeHtml } from '../core/geo';
 import { LiveService } from '../core/live.service';
-import { FriendEntry, LiveFriend } from '../core/models';
+import { EscortSession, FriendEntry, LiveFriend } from '../core/models';
+import { TPipe, t } from '../core/i18n';
 import { ToastService } from '../core/toast.service';
 import { avatarSrc, initialsOf } from '../core/avatar';
 
 @Component({
   selector: 'app-live-page',
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, TPipe],
   template: `
     <div class="layout">
       <aside class="side">
@@ -65,6 +66,37 @@ import { avatarSrc, initialsOf } from '../core/avatar';
           <p class="note small">Your phone sends your location only while CrimeSpot is open on screen. Nothing is stored after you stop.</p>
         </section>
 
+        <section class="walk">
+          <h2>🚶 {{ 'walk.title' | t }}</h2>
+          @if (live.escort()?.asWalker; as w) {
+            @if (w.status === 'REQUESTED') {
+              <p>{{ 'walk.waiting' | t: { name: w.escortName } }}</p>
+              <button class="btn btn-sm" type="button" (click)="walkAct(w, 'end')">{{ 'common.cancel' | t }}</button>
+            } @else {
+              <p class="ok-text">{{ 'walk.with' | t: { name: w.escortName } }}</p>
+              <button class="btn arrived" type="button" (click)="walkAct(w, 'end')">{{ 'live.arrived' | t }}</button>
+            }
+          } @else if (friends().length) {
+            <p class="muted small">{{ 'walk.intro' | t }}</p>
+            <div class="walk-friends">
+              @for (f of friends(); track f.person.userId) {
+                <button class="btn btn-sm" type="button" (click)="askWalk(f.person.userId)">{{ 'walk.ask' | t: { name: f.person.name } }}</button>
+              }
+            </div>
+          }
+          @for (s of live.escort()?.asEscort ?? []; track s.id) {
+            <div class="escorting" [class.alarm]="s.stationary || s.lost">
+              <strong>{{ 'walk.escorting' | t: { name: s.walkerName } }}</strong>
+              @if (s.lost) { <p>{{ 'walk.lostEscort' | t: { name: s.walkerName } }}</p> }
+              @else if (s.stationary) { <p>{{ 'walk.stillEscort' | t: { name: s.walkerName } }}</p> }
+              <div class="walk-friends">
+                <button class="btn btn-sm btn-danger" type="button" (click)="raise(s)">{{ 'walk.raise' | t: { name: s.walkerName } }}</button>
+                <button class="btn btn-sm" type="button" (click)="walkAct(s, 'end')">{{ 'walk.end' | t }}</button>
+              </div>
+            </div>
+          }
+        </section>
+
         <h2 class="others">Sharing with you</h2>
         @if (visible().length === 0) {
           <p class="muted small">No one is sharing their location with you right now.</p>
@@ -89,7 +121,7 @@ import { avatarSrc, initialsOf } from '../core/avatar';
     </div>
   `,
   styles: `
-    .layout { display: grid; grid-template-columns: 340px 1fr; height: calc(100vh - 60px); }
+    .layout { display: grid; grid-template-columns: 340px 1fr; height: calc(100dvh - var(--chrome-top, 60px) - var(--chrome-bottom, 0px)); }
     .side { padding: 20px 16px; overflow-y: auto; background: var(--card); border-right: 1px solid var(--line); }
     .side h1 { margin-bottom: 16px; }
     .side h2 { font-size: 1.1rem; margin-bottom: 8px; }
@@ -100,6 +132,13 @@ import { avatarSrc, initialsOf } from '../core/avatar';
     .opt { display: flex; align-items: center; gap: 8px; padding: 6px 0; }
     .opt input { width: 20px; height: 20px; min-height: 0; }
     .note { color: var(--muted); margin-top: 12px; }
+    .walk { padding-bottom: 16px; border-bottom: 1px solid var(--line); margin-bottom: 16px; }
+    .walk p { margin-bottom: 8px; }
+    .walk-friends { display: flex; gap: 8px; flex-wrap: wrap; }
+    .ok-text { color: var(--safe); font-weight: 600; }
+    .escorting { margin-top: 12px; padding: 12px; border-radius: var(--radius-m); background: #E8EEF8; }
+    .escorting.alarm { background: #FFF1D6; }
+    .escorting p { margin: 4px 0 8px; }
     .err { color: var(--risk); }
     .due { background: #FFF6D6; border: 1px solid #F0D98A; padding: 10px 12px; border-radius: var(--radius-m); }
     .arrived { width: 100%; background: var(--safe); color: #fff; border-color: #24654A; margin-bottom: 10px; }
@@ -198,6 +237,26 @@ export class LivePage implements OnInit, AfterViewInit, OnDestroy {
       next: () => { this.busy.set(false); this.live.refresh(); this.toast.ok("Checked in. Your friends know you're safe."); },
       error: err => { this.busy.set(false); this.toast.error(errorMessage(err)); },
     });
+  }
+
+  askWalk(friendId: string): void {
+    this.api.requestEscort(friendId).subscribe({
+      next: () => {
+        this.live.refresh();
+        // Location must flow to the escort as soon as they accept.
+        navigator.geolocation?.getCurrentPosition(p => this.live.sendNow(p), () => {}, { enableHighAccuracy: true, timeout: 10_000 });
+      },
+      error: err => this.toast.error(errorMessage(err)),
+    });
+  }
+
+  walkAct(s: EscortSession, action: 'end'): void {
+    this.api.escortAction(s.id, action).subscribe({ next: () => this.live.refresh(), error: err => this.toast.error(errorMessage(err)) });
+  }
+
+  raise(s: EscortSession): void {
+    if (!confirm(t('walk.raiseConfirm', { name: s.walkerName }))) return;
+    this.api.escortAlert(s.id).subscribe({ next: () => this.live.refresh(), error: err => this.toast.error(errorMessage(err)) });
   }
 
   stop(): void {

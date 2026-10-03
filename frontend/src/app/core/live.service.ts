@@ -3,7 +3,7 @@ import { Subscription, timer } from 'rxjs';
 import { ApiService } from './api.service';
 import { AuthService } from './auth.service';
 import { RealtimeService } from './realtime.service';
-import { Live } from './models';
+import { EscortOverview, Live } from './models';
 
 const POLL_MS = 15_000;
 const SEND_EVERY_MS = 15_000;
@@ -30,6 +30,7 @@ export class LiveService {
   private lastRefresh = 0;
 
   readonly state = signal<Live | null>(null);
+  readonly escort = signal<EscortOverview | null>(null);
   readonly lastSentAt = signal<Date | null>(null);
   readonly gpsError = signal('');
 
@@ -65,6 +66,7 @@ export class LiveService {
   refresh(): void {
     this.lastRefresh = Date.now();
     this.api.live().subscribe({ next: s => this.state.set(s), error: () => { /* keep last state */ } });
+    this.api.escort().subscribe({ next: e => this.escort.set(e), error: () => {} });
   }
 
   /** Sends one position immediately (used right after sharing starts). */

@@ -34,6 +34,7 @@
 
     <!-- Web Push (VAPID) for panic alerts. Brings BouncyCastle and jose4j. -->
     <dependency><groupId>nl.martijndwars</groupId><artifactId>web-push</artifactId><version>5.1.1</version></dependency>
+    <dependency><groupId>io.sentry</groupId><artifactId>sentry-spring-boot-starter-jakarta</artifactId><version>7.14.0</version></dependency>
     <dependency><groupId>org.bouncycastle</groupId><artifactId>bcprov-jdk18on</artifactId><version>1.78.1</version></dependency>
 
     <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-test</artifactId><scope>test</scope></dependency>

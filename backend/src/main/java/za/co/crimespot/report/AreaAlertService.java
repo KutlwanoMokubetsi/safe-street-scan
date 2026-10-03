@@ -34,16 +34,17 @@ public class AreaAlertService {
         CrimeReport r = reports.findById(reportId).orElse(null);
         if (r == null || r.getStatus() != ReportStatus.VERIFIED) return;
 
-        String type = r.getCrimeType().name().replace('_', ' ').toLowerCase(Locale.ROOT);
+        String typeKey = "crime." + r.getCrimeType().name();
         for (User u : users.findByAlertRadiusMGreaterThan(0)) {
             if (u.getId().equals(r.getUserId()) || u.getHomeLat() == null || u.getHomeLng() == null) continue;
             double d = HotspotDetector.distanceMeters(u.getHomeLat(), u.getHomeLng(), r.getLatitude(), r.getLongitude());
             if (d > u.getAlertRadiusM()) continue;
             String km = d < 1000 ? Math.round(d / 100) * 100 + " m" : String.format(Locale.ROOT, "%.1f km", d / 1000);
-            String title = "Verified " + type + " " + km + " from home";
-            String place = r.getLocationName() != null ? r.getLocationName() : "Tap to see it on the map.";
-            notifications.send(u.getId(), title, place,
-                    "/map?lat=" + r.getLatitude() + "&lng=" + r.getLongitude());
+            String lang = u.getLang();
+            String title = za.co.crimespot.i18n.Messages.t(lang, "push.area.title",
+                    java.util.Map.of("type", za.co.crimespot.i18n.Messages.t(lang, typeKey), "dist", km));
+            String body = r.getLocationName() != null ? r.getLocationName() : za.co.crimespot.i18n.Messages.t(lang, "push.area.body");
+            notifications.send(u.getId(), title, body, "/reports/" + r.getId());
             hub.notice(List.of(u.getId()), title);
         }
     }

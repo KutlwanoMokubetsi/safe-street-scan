@@ -52,13 +52,15 @@ public class RealtimeHub extends TextWebSocketHandler {
     private final UserProvisioningService provisioning;
     private final ObjectMapper json;
     private final za.co.crimespot.common.ReadCache cache;
+    private final za.co.crimespot.i18n.Localizer localizer;
 
     public RealtimeHub(JwtDecoder jwtDecoder, UserProvisioningService provisioning, ObjectMapper json,
-                       za.co.crimespot.common.ReadCache cache) {
+                       za.co.crimespot.common.ReadCache cache, za.co.crimespot.i18n.Localizer localizer) {
         this.jwtDecoder = jwtDecoder;
         this.provisioning = provisioning;
         this.json = json;
         this.cache = cache;
+        this.localizer = localizer;
     }
 
     // ---------- publishing (called from services) ----------
@@ -76,6 +78,11 @@ public class RealtimeHub extends TextWebSocketHandler {
     public int connectedCount() { return (int) conns.values().stream().filter(c -> c.userId != null).count(); }
 
     public void notice(Collection<UUID> users, String text) { afterCommit(() -> sendTo(users, msg("notice", text))); }
+
+    /** In-app toast in each recipient's language. */
+    public void noticeLocalized(Collection<UUID> users, java.util.function.Function<String, String> textForLang) {
+        afterCommit(() -> localizer.byLang(users).forEach((lang, us) -> sendTo(us, msg("notice", textForLang.apply(lang)))));
+    }
 
     /** Only send once the database change is committed, so a client that re-fetches sees it. */
     private void afterCommit(Runnable r) {

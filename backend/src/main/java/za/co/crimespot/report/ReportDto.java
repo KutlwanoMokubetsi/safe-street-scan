@@ -20,11 +20,21 @@ public record ReportDto(
         boolean mine,
         String source,
         String sourceUrl,
-        String sourceName) {
+        String sourceName,
+        int confirmations,
+        boolean confirmedByMe,
+        boolean reporterTrusted,
+        /** Only filled for moderators. */
+        String reporterTrust) {
 
     public static ReportDto from(CrimeReport r, UUID viewerId) {
         return new ReportDto(r.getId(), r.getCrimeType(), r.getDescription(), r.getLocationName(),
                 r.getLatitude(), r.getLongitude(), r.getOccurredAt(), r.getStatus(),
-                r.getCreatedAt(), r.getUserId().equals(viewerId), r.getSource(), r.getSourceUrl(), r.getSourceName());
+                r.getCreatedAt(), r.getUserId().equals(viewerId), r.getSource(), r.getSourceUrl(), r.getSourceName(), 0, false, false, null);
+    }
+
+    public ReportDto with(int confirmations, boolean confirmedByMe, boolean reporterTrusted, String reporterTrust) {
+        return new ReportDto(id, crimeType, description, locationName, latitude, longitude, occurredAt, status, createdAt, mine,
+                source, sourceUrl, sourceName, confirmations, confirmedByMe, reporterTrusted, reporterTrust);
     }
 }

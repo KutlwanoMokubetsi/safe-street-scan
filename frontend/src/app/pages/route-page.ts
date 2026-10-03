@@ -42,6 +42,15 @@ import { ToastService } from '../core/toast.service';
           <button type="button" class="chip" [class.on]="walk()" (click)="walk.set(true)" role="radio" [attr.aria-checked]="walk()">{{ 'route.walk' | t }}</button>
           <button type="button" class="chip" [class.on]="!walk()" (click)="walk.set(false)" role="radio" [attr.aria-checked]="!walk()">{{ 'route.drive' | t }}</button>
         </div>
+        <div class="field">
+          <label for="leave">{{ 'route.leave' | t }}</label>
+          <select id="leave" [(ngModel)]="leave">
+            <option value="now">{{ 'fake.now' | t }}</option>
+            <option value="1h">{{ 'route.leave1h' | t }}</option>
+            <option value="18">{{ 'route.tonight' | t: { t: '18:00' } }}</option>
+            <option value="21">{{ 'route.tonight' | t: { t: '21:00' } }}</option>
+          </select>
+        </div>
         <button class="btn btn-ink full" type="button" (click)="find()" [disabled]="busy() || !from() || !to()">
           {{ busy() ? ('route.finding' | t) : ('route.find' | t) }}
         </button>
@@ -69,7 +78,7 @@ import { ToastService } from '../core/toast.service';
     </div>
   `,
   styles: `
-    .layout { display: grid; grid-template-columns: 360px 1fr; height: calc(100vh - 60px); }
+    .layout { display: grid; grid-template-columns: 360px 1fr; height: calc(100dvh - var(--chrome-top, 60px) - var(--chrome-bottom, 0px)); }
     .side { padding: 20px 16px; overflow-y: auto; background: var(--card); border-right: 1px solid var(--line); }
     .side h1 { margin-bottom: 4px; }
     .side > p { margin-bottom: 16px; }
@@ -121,6 +130,7 @@ export class RoutePage implements AfterViewInit, OnDestroy {
   readonly results = signal<PlaceResult[]>([]);
   readonly search$ = new Subject<string>();
   query = '';
+  leave = 'now';
 
   constructor() {
     this.search$.pipe(debounceTime(450), distinctUntilChanged(), filter(q => q.trim().length >= 3),
@@ -158,7 +168,7 @@ export class RoutePage implements AfterViewInit, OnDestroy {
     const f = this.from(), d = this.to();
     if (!f || !d) return;
     this.busy.set(true);
-    this.api.routes(f, d, this.walk()).subscribe({
+    this.api.routes(f, d, this.walk(), this.departure()).subscribe({
       next: p => { this.busy.set(false); this.plan.set(p); this.select(p.routes[0]); },
       error: err => { this.busy.set(false); this.toast.error(errorMessage(err, "Couldn't find a route.")); },
     });
@@ -192,6 +202,16 @@ export class RoutePage implements AfterViewInit, OnDestroy {
       next: () => { this.live.refresh(); this.toast.ok(t('live.sharing')); this.router.navigateByUrl('/live'); },
       error: err => this.toast.error(errorMessage(err)),
     });
+  }
+
+  /** Hotspot risk depends on the time, so plan for when you'll actually be walking. */
+  private departure(): Date | null {
+    if (this.leave === 'now') return null;
+    const d = new Date();
+    if (this.leave === '1h') return new Date(d.getTime() + 3_600_000);
+    d.setHours(Number(this.leave), 0, 0, 0);
+    if (d.getTime() < Date.now()) d.setDate(d.getDate() + 1);
+    return d;
   }
 
   km(m: number): string { return m < 1000 ? `${Math.round(m)} m` : `${(m / 1000).toFixed(1)} km`; }

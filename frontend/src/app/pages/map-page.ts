@@ -10,12 +10,14 @@ import { DEFAULT_CENTER, createMap, currentPosition } from '../core/geo';
 import { Hotspot, Report } from '../core/models';
 import { RealtimeService } from '../core/realtime.service';
 import { ToastService } from '../core/toast.service';
+import { TPipe, t } from '../core/i18n';
+import { OutageZone, Outages } from '../core/models';
 
 const CLUSTER_PX = 56;
 
 @Component({
   selector: 'app-map-page',
-  imports: [RouterLink],
+  imports: [RouterLink, TPipe],
   template: `
     <div class="wrap">
       <div class="map" #mapEl role="application" aria-label="Crime map"></div>
@@ -38,6 +40,7 @@ const CLUSTER_PX = 56;
       </div>
 
       <div class="fabs">
+        <button type="button" class="fab power" (click)="powerOpen.set(true)" [attr.aria-label]="'outage.button' | t">⚡</button>
         <button type="button" class="fab" (click)="locate()" aria-label="Go to my location">
           <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><circle cx="12" cy="12" r="4" fill="currentColor"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2"/></svg>
         </button>
@@ -54,7 +57,25 @@ const CLUSTER_PX = 56;
           <p class="desc">{{ r.description }}</p>
           <p class="muted small">{{ r.locationName || 'Pinned location' }} · {{ ago(r.occurredAt) }}</p>
           @if (r.source === 'NEWS') { <p class="small muted">From the news, checked by a moderator</p> }
+          @if (r.reporterTrusted) { <p class="small trusted">✓ {{ 'seen.trusted' | t }}</p> }
+          @if (r.confirmations) { <p class="small muted">👁 {{ 'seen.count' | t: { n: r.confirmations } }}</p> }
           <a class="btn btn-sm open" [routerLink]="['/reports', r.id]">Details and comments</a>
+        </div>
+      } @else if (zone(); as z) {
+        <div class="sheet" role="dialog" aria-label="Power outage">
+          <button type="button" class="close" (click)="zone.set(null)" aria-label="Close">×</button>
+          <h2>⚡ {{ 'outage.zone' | t: { n: z.reports, t: hhmm(z.since) } }}</h2>
+          @if (z.hotspot) { <p class="warn-text">{{ 'outage.hotspot' | t: { name: z.hotspot } }}</p> }
+        </div>
+      } @else if (powerOpen()) {
+        <div class="sheet" role="dialog" [attr.aria-label]="'outage.button' | t">
+          <button type="button" class="close" (click)="powerOpen.set(false)" aria-label="Close">×</button>
+          <h2>⚡ {{ 'outage.button' | t }}</h2>
+          <p class="muted small">{{ 'outage.help' | t }}</p>
+          <div class="row-btns">
+            <button class="btn btn-ink" type="button" (click)="powerOut()">{{ 'outage.out' | t }}</button>
+            @if (outages()?.mineOpen) { <button class="btn" type="button" (click)="powerBack()">{{ 'outage.back' | t }}</button> }
+          </div>
         </div>
       } @else if (spot(); as h) {
         <div class="sheet" role="dialog" aria-label="Hotspot details">
@@ -64,6 +85,9 @@ const CLUSTER_PX = 56;
             <span class="risk" [style.color]="risk(h.intensityScore).color">{{ risk(h.intensityScore).label }} risk</span>
           </div>
           <p class="muted">{{ h.crimeCount }} incidents in the last 30 days, mostly {{ label(h.topCrimeType).toLowerCase() }}.</p>
+          <p class="small"><strong>{{ 'risk.now' | t }}:</strong>
+            <span [style.color]="risk(h.riskNow ?? h.intensityScore).color">{{ risk(h.riskNow ?? h.intensityScore).label }}</span>
+            @if (h.peakDays) { · {{ (h.peakDays === 'WEEKEND' ? 'risk.weekends' : 'risk.weekdays') | t }} }</p>
           @if (h.trend === 'RISING') { <p class="trend-RISING small">▲ Rising: more incidents this week than usual</p> }
           @if (h.trend === 'FALLING') { <p class="trend-FALLING small">▼ Falling: fewer incidents this week than usual</p> }
           @if (h.peakHours) { <p class="small">Most incidents happen <strong>{{ h.peakHours }}</strong>.</p> }
@@ -72,7 +96,8 @@ const CLUSTER_PX = 56;
     </div>
   `,
   styles: `
-    .wrap { position: relative; height: calc(100vh - 60px); }
+    /* Exactly the space between the header/banners and the mobile bottom bar (measured in App). */
+    .wrap { position: relative; height: calc(100dvh - var(--chrome-top, 60px) - var(--chrome-bottom, 0px)); }
     .map { position: absolute; inset: 0; }
     .chips {
       position: absolute; z-index: 500; top: 12px; left: 12px; right: 12px;
@@ -110,10 +135,12 @@ const CLUSTER_PX = 56;
     .risk { font-weight: 600; font-size: 0.9rem; }
     .desc { margin-bottom: 6px; overflow-wrap: anywhere; }
     .open { margin-top: 10px; }
+    .trusted { color: var(--safe); font-weight: 600; margin: 2px 0; }
+    .fab.power { font-size: 1.2rem; }
+    .warn-text { color: #8A5A00; font-weight: 600; }
+    .row-btns { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
     .close { position: absolute; top: 8px; right: 10px; width: 36px; height: 36px; border: 0; background: none; font-size: 1.5rem; color: var(--muted); cursor: pointer; }
     @media (max-width: 860px) {
-      /* Header (two rows) and the SOS/Report bar take ~170px; dvh follows the browser toolbar. */
-      .wrap { height: calc(100vh - 170px); height: calc(100dvh - 170px); }
       .fabs { bottom: 16px; }
       .fab.report { display: none; } /* the bottom bar already has Report */
       .sheet { bottom: 12px; max-width: none; }
@@ -123,7 +150,7 @@ const CLUSTER_PX = 56;
 export class MapPage implements AfterViewInit, OnDestroy {
   private api = inject(ApiService);
   private toast = inject(ToastService);
-  private live = inject(RealtimeService).on('reports', 'hotspots').pipe(takeUntilDestroyed());
+  private live = inject(RealtimeService).on('reports', 'hotspots', 'outages').pipe(takeUntilDestroyed());
 
   readonly lat = input<string>();
   readonly lng = input<string>();
@@ -132,6 +159,7 @@ export class MapPage implements AfterViewInit, OnDestroy {
   private map?: L.Map;
   private hotLayer = L.layerGroup();
   private dotLayer = L.layerGroup();
+  private outageLayer = L.layerGroup();
   private me?: L.CircleMarker;
   private moves = new Subject<void>();
   private sub?: Subscription;
@@ -160,6 +188,9 @@ export class MapPage implements AfterViewInit, OnDestroy {
   readonly hotspots = signal<Hotspot[]>([]);
   readonly selected = signal<Report | null>(null);
   readonly spot = signal<Hotspot | null>(null);
+  readonly zone = signal<OutageZone | null>(null);
+  readonly powerOpen = signal(false);
+  readonly outages = signal<Outages | null>(null);
   readonly center = signal<{ lat?: number; lng?: number }>({});
 
   readonly label = crimeLabel;
@@ -173,7 +204,9 @@ export class MapPage implements AfterViewInit, OnDestroy {
     this.map.zoomControl.setPosition('bottomleft');
     this.hotLayer.addTo(this.map);
     this.dotLayer.addTo(this.map);
-    this.map.on('click', () => { this.selected.set(null); this.spot.set(null); });
+    this.outageLayer.addTo(this.map);
+    this.loadOutages();
+    this.map.on('click', () => { this.selected.set(null); this.spot.set(null); this.zone.set(null); this.powerOpen.set(false); });
 
     this.sub = this.moves.pipe(
       debounceTime(300),
@@ -193,7 +226,7 @@ export class MapPage implements AfterViewInit, OnDestroy {
 
     this.map.on('moveend', () => { this.updateCenter(); this.moves.next(); });
     this.map.on('zoomend', () => this.draw());
-    this.live.subscribe(() => this.moves.next());
+    this.live.subscribe(() => { this.moves.next(); this.loadOutages(); });
     this.updateCenter();
     this.moves.next();
 
@@ -213,6 +246,34 @@ export class MapPage implements AfterViewInit, OnDestroy {
     this.draw();
   }
 
+  hhmm(iso: string): string { return new Date(iso).toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit' }); }
+
+  private loadOutages(): void {
+    this.api.outages().subscribe({ next: o => { this.outages.set(o); this.drawOutages(); }, error: () => {} });
+  }
+
+  private drawOutages(): void {
+    this.outageLayer.clearLayers();
+    for (const z of this.outages()?.zones ?? []) {
+      L.circle([z.lat, z.lng], { radius: z.radiusM, color: '#B8860B', weight: 2, dashArray: '6 6', fillColor: '#F5C518', fillOpacity: 0.12 })
+        .on('click', e => { L.DomEvent.stopPropagation(e); this.selected.set(null); this.spot.set(null); this.zone.set(z); })
+        .addTo(this.outageLayer);
+    }
+  }
+
+  async powerOut(): Promise<void> {
+    const pos = await currentPosition(8000);
+    if (!pos) return this.toast.error('Allow location access to report an outage where you are.');
+    this.api.reportOutage(pos[0], pos[1]).subscribe({
+      next: () => { this.powerOpen.set(false); this.toast.ok(t('outage.help')); this.loadOutages(); },
+      error: err => this.toast.error(errorMessage(err)),
+    });
+  }
+
+  powerBack(): void {
+    this.api.powerBack().subscribe({ next: () => { this.powerOpen.set(false); this.loadOutages(); }, error: err => this.toast.error(errorMessage(err)) });
+  }
+
   async locate(): Promise<void> {
     const pos = await currentPosition();
     if (!pos) return this.toast.error('Location is off. Allow location access in your browser to use this.');
@@ -227,9 +288,10 @@ export class MapPage implements AfterViewInit, OnDestroy {
 
     this.hotLayer.clearLayers();
     for (const h of this.hotspots()) {
-      const lvl = riskLevel(h.intensityScore);
+      const lvl = riskLevel(h.riskNow ?? h.intensityScore);
       L.circle([h.centerLatitude, h.centerLongitude], {
-        radius: h.radiusMeters, stroke: false, fillColor: lvl.color, fillOpacity: 0.06 + h.intensityScore * 0.14,
+        // Shaded by risk right now (peak hours and days), not just the 30-day total.
+        radius: h.radiusMeters, stroke: false, fillColor: lvl.color, fillOpacity: 0.05 + (h.riskNow ?? h.intensityScore) * 0.16,
       }).on('click', e => { L.DomEvent.stopPropagation(e); this.selected.set(null); this.spot.set(h); })
         .addTo(this.hotLayer);
     }

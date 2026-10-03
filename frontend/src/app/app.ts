@@ -1,4 +1,4 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { AfterViewInit, Component, ElementRef, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { ApiService } from './core/api.service';
 import { AuthService } from './core/auth.service';
@@ -8,7 +8,9 @@ import { RealtimeService } from './core/realtime.service';
 import { ToastService } from './core/toast.service';
 import { errorMessage } from './core/auth.interceptor';
 import { avatarSrc } from './core/avatar';
-import { TPipe, t as tr } from './core/i18n';
+import { I18n, Lang, TPipe, t as tr } from './core/i18n';
+import { apiDown } from './core/auth.interceptor';
+import { EscortSession } from './core/models';
 
 @Component({
   selector: 'app-root',
@@ -16,13 +18,17 @@ import { TPipe, t as tr } from './core/i18n';
   templateUrl: './app.html',
   styleUrl: './app.css',
 })
-export class App implements OnInit {
+export class App implements OnInit, AfterViewInit, OnDestroy {
+  private host = inject(ElementRef<HTMLElement>);
+  private observers: { disconnect(): void }[] = [];
   protected auth = inject(AuthService);
   protected live = inject(LiveService);
   protected toast = inject(ToastService);
   private push = inject(PushService);
   protected realtime = inject(RealtimeService);
   protected readonly online = signal(navigator.onLine);
+  protected readonly apiDown = apiDown;
+  private i18n = inject(I18n);
   private api = inject(ApiService);
   private router = inject(Router);
 
@@ -57,10 +63,16 @@ export class App implements OnInit {
     // Re-render once a minute so relative times ("2 min ago") stay accurate.
     setInterval(() => this.online.set(navigator.onLine), 60_000);
     if (!this.auth.isLoggedIn()) return;
-    this.auth.ensureUser();
+    // Keep the account's language in step with the app, so notifications arrive in the same language.
+    this.i18n.onChange = (l: Lang) => this.auth.updateProfile({ lang: l }).subscribe({ next: u => this.auth.user.set(u), error: () => {} });
+    this.auth.ensureUser().then(u => { if (u && u.lang !== this.i18n.lang()) this.i18n.onChange?.(this.i18n.lang()); });
     this.realtime.start();
     this.live.start();
     this.push.check();
+  }
+
+  escortAct(s: EscortSession, action: 'accept' | 'decline' | 'ok'): void {
+    this.api.escortAction(s.id, action).subscribe({ next: () => this.live.refresh(), error: err => this.toast.error(errorMessage(err)) });
   }
 
   checkIn(): void {
@@ -69,6 +81,33 @@ export class App implements OnInit {
       error: err => this.toast.error(errorMessage(err)),
     });
   }
+
+  /**
+   * Publishes the real height of the top chrome (header + any banners) and the mobile bottom bar as CSS
+   * variables, so full-height pages (map, live, route) never slide under them when a banner appears.
+   */
+  ngAfterViewInit(): void {
+    const root = this.host.nativeElement as HTMLElement;
+    const measure = () => {
+      let top = 0;
+      root.querySelectorAll(':scope > .bar, :scope > .offline, :scope > .alert-banner, :scope > .walk-banner, :scope > .share-bar')
+        .forEach(el => (top += (el as HTMLElement).offsetHeight));
+      const bottomBar = root.querySelector(':scope > .bottom-bar') as HTMLElement | null;
+      const bottom = bottomBar && getComputedStyle(bottomBar).display !== 'none' ? bottomBar.offsetHeight : 0;
+      document.documentElement.style.setProperty('--chrome-top', `${top}px`);
+      document.documentElement.style.setProperty('--chrome-bottom', `${bottom}px`);
+    };
+    const ro = new ResizeObserver(measure);
+    const watch = () => root.querySelectorAll(':scope > *').forEach(el => ro.observe(el));
+    const mo = new MutationObserver(() => { watch(); measure(); }); // banners are added/removed as DOM nodes
+    mo.observe(root, { childList: true });
+    watch();
+    measure();
+    window.addEventListener('resize', measure);
+    this.observers.push(ro, mo);
+  }
+
+  ngOnDestroy(): void { this.observers.forEach(o => o.disconnect()); }
 
   stopSharing(): void {
     this.api.stopSharing().subscribe({

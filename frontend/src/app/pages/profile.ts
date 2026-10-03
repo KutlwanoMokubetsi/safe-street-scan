@@ -112,6 +112,22 @@ import { RouterLink } from '@angular/router';
       </section>
 
       <section class="panel panel-body">
+        <h2>{{ 'data.title' | t }}</h2>
+        <p class="muted small">{{ 'data.intro' | t }}</p>
+        <div class="row">
+          <button class="btn btn-sm" type="button" (click)="download()">{{ 'data.download' | t }}</button>
+          <button class="btn btn-sm btn-danger" type="button" (click)="deleting.set(!deleting())">{{ 'data.delete' | t }}</button>
+        </div>
+        @if (deleting()) {
+          <div class="danger-box">
+            <p>{{ 'data.deleteConfirm' | t }}</p>
+            <input [(ngModel)]="confirmText" name="confirmDelete" aria-label="Type DELETE to confirm" autocomplete="off">
+            <button class="btn btn-danger" type="button" [disabled]="confirmText !== 'DELETE' || busyDelete()" (click)="deleteAccount()">{{ 'data.delete' | t }}</button>
+          </div>
+        }
+      </section>
+
+      <section class="panel panel-body">
         <h2>Account</h2>
         <p class="muted small">Signed in as {{ auth.user()?.email }}</p>
         <div class="row">
@@ -131,6 +147,7 @@ import { RouterLink } from '@angular/router';
     .row { display: flex; gap: 8px; flex-wrap: wrap; }
     .hint { margin: 12px 0 0; }
     .langs { display: flex; gap: 8px; flex-wrap: wrap; }
+    .danger-box { margin-top: 12px; padding: 12px; border: 1px solid #F3C2BD; background: #FDECEA; border-radius: var(--radius-m); display: grid; gap: 8px; }
     .pic-row { display: flex; gap: 18px; align-items: center; }
     .pic-row h2 { margin-bottom: 4px; }
     .pic-row p { margin-bottom: 10px; }
@@ -151,6 +168,31 @@ export class Profile implements OnInit {
   readonly picBusy = signal(false);
   protected i18n = inject(I18n);
   readonly langs = LANGS;
+  readonly deleting = signal(false);
+  readonly busyDelete = signal(false);
+  confirmText = '';
+
+  download(): void {
+    this.api.exportData().subscribe({
+      next: blob => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'crimespot-my-data.json';
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
+      },
+      error: err => this.toast.error(errorMessage(err)),
+    });
+  }
+
+  deleteAccount(): void {
+    this.busyDelete.set(true);
+    this.api.deleteAccount().subscribe({
+      next: () => this.auth.logout(),
+      error: err => { this.busyDelete.set(false); this.toast.error(errorMessage(err, "Couldn't delete your account. Try again or email us.")); },
+    });
+  }
   private api = inject(ApiService);
   readonly ini = initialsOf;
   avatar() { return avatarSrc(this.auth.user()?.avatarUrl); }

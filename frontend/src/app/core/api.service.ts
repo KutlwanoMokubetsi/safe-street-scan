@@ -1,7 +1,7 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { environment } from '../../environments/environment';
-import { Alert, Bounds, CommentItem, EmergencyInfo, News, PlaceResult, RoutePlan, Suggestion, FriendsOverview, Hotspot, Live, NewReport, Report, ReportStatus, Role, Share, Stats, User } from './models';
+import { Alert, Bounds, CommentItem, EmergencyInfo, EscortOverview, EscortSession, GroupDetail, GroupSummary, News, Outages, PlaceResult, RoutePlan, Suggestion, FriendsOverview, Hotspot, Live, NewReport, Report, ReportStatus, Role, Share, Stats, User } from './models';
 
 @Injectable({ providedIn: 'root' })
 export class ApiService {
@@ -31,7 +31,9 @@ export class ApiService {
     return this.http.patch<Report>(`${this.base}/reports/${id}/status`, { status });
   }
 
-  hotspots() { return this.http.get<Hotspot[]>(`${this.base}/hotspots`); }
+  hotspots(at?: Date) {
+    return this.http.get<Hotspot[]>(`${this.base}/hotspots`, at ? { params: { at: at.toISOString() } } : {});
+  }
 
   regenerateHotspots() { return this.http.post<{ hotspots: number }>(`${this.base}/hotspots/regenerate`, {}); }
 
@@ -89,9 +91,9 @@ export class ApiService {
   refreshSuggestions() { return this.http.post<{ status: string }>(`${this.base}/suggestions/refresh`, {}); }
 
   // ---- Safe routes ----
-  routes(from: [number, number], to: [number, number], walk: boolean) {
+  routes(from: [number, number], to: [number, number], walk: boolean, departAt: Date | null = null) {
     return this.http.post<RoutePlan>(`${this.base}/routes`, {
-      from: { lat: from[0], lng: from[1] }, to: { lat: to[0], lng: to[1] }, walk,
+      from: { lat: from[0], lng: from[1] }, to: { lat: to[0], lng: to[1] }, walk, departAt: departAt?.toISOString() ?? null,
     });
   }
   places(q: string) { return this.http.get<PlaceResult[]>(`${this.base}/places`, { params: { q } }); }
@@ -111,4 +113,37 @@ export class ApiService {
   pushKey() { return this.http.get<{ enabled: boolean; publicKey: string }>(`${this.base}/push/public-key`); }
   pushSubscribe(sub: PushSubscriptionJSON) { return this.http.post<void>(`${this.base}/push/subscribe`, sub); }
   pushUnsubscribe(endpoint: string) { return this.http.post<void>(`${this.base}/push/unsubscribe`, { endpoint }); }
+
+  // ---- "Seen it too" ----
+  confirm(reportId: string) { return this.http.post<{ confirmations: number }>(`${this.base}/reports/${reportId}/confirm`, {}); }
+  unconfirm(reportId: string) { return this.http.delete<{ confirmations: number }>(`${this.base}/reports/${reportId}/confirm`); }
+
+  // ---- Walk with me ----
+  escort() { return this.http.get<EscortOverview>(`${this.base}/escort`); }
+  requestEscort(friendId: string) { return this.http.post<EscortSession>(`${this.base}/escort`, { friendId }); }
+  escortAction(id: string, action: 'accept' | 'decline' | 'end' | 'ok') { return this.http.post<unknown>(`${this.base}/escort/${id}/${action}`, {}); }
+  escortAlert(id: string) { return this.http.post<Alert>(`${this.base}/escort/${id}/alert`, {}); }
+
+  // ---- Groups ----
+  groups() { return this.http.get<GroupSummary[]>(`${this.base}/groups`); }
+  group(id: string) { return this.http.get<GroupDetail>(`${this.base}/groups/${id}`); }
+  createGroup(b: { name: string; kind: string; description?: string; lat?: number; lng?: number }) { return this.http.post<{ id: string }>(`${this.base}/groups`, b); }
+  joinGroup(code: string) { return this.http.post<{ id: string }>(`${this.base}/groups/join`, { code }); }
+  updateGroup(id: string, b: { name?: string; description?: string; lat?: number; lng?: number; radiusM?: number }) { return this.http.patch<void>(`${this.base}/groups/${id}`, b); }
+  deleteGroup(id: string) { return this.http.delete<void>(`${this.base}/groups/${id}`); }
+  removeMember(id: string, userId: string) { return this.http.delete<void>(`${this.base}/groups/${id}/members/${userId}`); }
+  setMemberRole(id: string, userId: string, role: string) { return this.http.patch<void>(`${this.base}/groups/${id}/members/${userId}`, { role }); }
+  setGroupSos(id: string, share: boolean) { return this.http.put<void>(`${this.base}/groups/${id}/sos`, { share }); }
+  groupPost(id: string, body: string, alert: boolean) { return this.http.post<void>(`${this.base}/groups/${id}/posts`, { body, alert }); }
+  deleteGroupPost(id: string, postId: string) { return this.http.delete<void>(`${this.base}/groups/${id}/posts/${postId}`); }
+  groupReports(id: string) { return this.http.get<Report[]>(`${this.base}/groups/${id}/reports`); }
+
+  // ---- Power outages ----
+  outages() { return this.http.get<Outages>(`${this.base}/outages`); }
+  reportOutage(lat: number, lng: number) { return this.http.post<void>(`${this.base}/outages`, { lat, lng }); }
+  powerBack() { return this.http.post<void>(`${this.base}/outages/restored`, {}); }
+
+  // ---- Account (POPIA) ----
+  exportData() { return this.http.get(`${this.base}/me/export`, { responseType: 'blob' }); }
+  deleteAccount() { return this.http.delete<void>(`${this.base}/me`); }
 }

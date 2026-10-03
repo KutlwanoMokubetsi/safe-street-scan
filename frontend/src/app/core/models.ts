@@ -14,6 +14,7 @@ export interface User {
   hasHome: boolean;
   alertRadiusM: number;
   avatarUrl?: string;
+  lang?: string;
 }
 
 export interface Report {
@@ -30,6 +31,10 @@ export interface Report {
   source?: 'USER' | 'NEWS';
   sourceUrl?: string;
   sourceName?: string;
+  confirmations?: number;
+  confirmedByMe?: boolean;
+  reporterTrusted?: boolean;
+  reporterTrust?: 'NEW' | 'REGULAR' | 'TRUSTED' | 'LOW';
 }
 
 export interface NewReport {
@@ -52,6 +57,8 @@ export interface Hotspot {
   topCrimeType?: CrimeType;
   peakHours?: string;
   trend?: 'RISING' | 'STEADY' | 'FALLING';
+  peakDays?: 'WEEKEND' | 'WEEKDAY';
+  riskNow?: number;
   generatedAt: string;
 }
 
@@ -84,7 +91,7 @@ export interface FriendsOverview {
   outgoing: FriendEntry[];
 }
 
-export type ShareReason = 'MANUAL' | 'PANIC';
+export type ShareReason = 'MANUAL' | 'PANIC' | 'ESCORT';
 
 export interface Share {
   id: string;
@@ -153,3 +160,22 @@ export interface EmergencyInfo {
   bloodType?: string; allergies?: string; medications?: string; conditions?: string; medicalAid?: string;
   medicalAidNumber?: string; contactName?: string; contactPhone?: string; contactRelation?: string; notes?: string;
 }
+
+export interface EscortSession {
+  id: string; status: 'REQUESTED' | 'ACTIVE' | 'ENDED' | 'DECLINED';
+  walkerId: string; walkerName: string; escortId: string; escortName: string;
+  startedAt?: string; stationary: boolean; lost: boolean;
+}
+export interface EscortOverview { asWalker?: EscortSession; asEscort: EscortSession[]; incoming: EscortSession[]; }
+
+export interface GroupSummary { id: string; name: string; kind: 'WATCH' | 'ESTATE' | 'CPF'; role: string; members: number; sosShare: boolean; }
+export interface GroupMember { userId: string; name: string; avatarUrl?: string; role: 'OWNER' | 'ADMIN' | 'MEMBER'; }
+export interface GroupPost { id: string; author: string; body: string; alert: boolean; createdAt: string; mine: boolean; }
+export interface GroupDetail {
+  id: string; name: string; description?: string; kind: string; plan: string; inviteCode: string;
+  areaLat?: number; areaLng?: number; areaRadiusM: number; myRole: 'OWNER' | 'ADMIN' | 'MEMBER'; mySosShare: boolean;
+  memberCap: number; members: GroupMember[]; posts: GroupPost[];
+}
+
+export interface OutageZone { lat: number; lng: number; radiusM: number; reports: number; since: string; hotspot?: string; }
+export interface Outages { zones: OutageZone[]; mineOpen: boolean; }

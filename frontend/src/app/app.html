@@ -14,6 +14,7 @@
       <a routerLink="/route" routerLinkActive="on">{{ 'nav.route' | t }}</a>
       <a routerLink="/live" routerLinkActive="on">{{ 'nav.live' | t }}</a>
       <a routerLink="/friends" routerLinkActive="on">{{ 'nav.friends' | t }}</a>
+      <a routerLink="/groups" routerLinkActive="on">{{ 'nav.groups' | t }}</a>
       <a routerLink="/my-reports" routerLinkActive="on">{{ 'nav.myReports' | t }}</a>
       @if (auth.canModerate()) {
         <a routerLink="/moderate" routerLinkActive="on">{{ 'nav.review' | t }}</a>
@@ -28,6 +29,37 @@
       </a>
     </div>
   </header>
+
+  @if (online() && apiDown()) {
+    <div class="offline down" role="alert">{{ 'common.apiDown' | t }}</div>
+  }
+  @for (s of live.escort()?.incoming ?? []; track s.id) {
+    <div class="walk-banner" role="alert">
+      <span>{{ 'walk.incoming' | t: { name: s.walkerName } }}</span>
+      <span class="acts">
+        <button type="button" class="yes" (click)="escortAct(s, 'accept')">{{ 'walk.accept' | t }}</button>
+        <button type="button" (click)="escortAct(s, 'decline')">{{ 'walk.decline' | t }}</button>
+      </span>
+    </div>
+  }
+  @if (live.escort()?.asWalker; as w) {
+    @if (w.status === 'ACTIVE' && w.stationary) {
+      <div class="walk-banner warn" role="alert">
+        <span>{{ 'walk.still' | t: { name: w.escortName } }}</span>
+        <span class="acts">
+          <button type="button" class="yes" (click)="escortAct(w, 'ok')">{{ 'walk.ok' | t }}</button>
+          <a routerLink="/sos">SOS</a>
+        </span>
+      </div>
+    }
+  }
+  @for (s of live.escort()?.asEscort ?? []; track s.id) {
+    @if (s.stationary || s.lost) {
+      <a class="walk-banner warn" routerLink="/live" role="alert">
+        <strong>{{ (s.lost ? 'walk.lostEscort' : 'walk.stillEscort') | t: { name: s.walkerName } }}</strong>
+      </a>
+    }
+  }
 
   @if (!online()) {
     <div class="offline" role="status">{{ 'common.offline' | t }}</div>

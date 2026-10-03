@@ -61,10 +61,10 @@ public class CommentService {
     public PostResult post(AuthUser me, UUID reportId, String body) {
         CrimeReport r = visibleReport(me, reportId);
         if (r.getStatus() == ReportStatus.REJECTED) throw new BadRequestException("This report isn't open for comments.");
-        if (body == null || body.isBlank()) throw new BadRequestException("Write a comment first.");
-        if (body.length() > 1000) throw new BadRequestException("Keep comments under 1,000 characters.");
+        if (body == null || body.isBlank()) throw new BadRequestException("err.comment.empty");
+        if (body.length() > 1000) throw new BadRequestException("err.comment.long");
         if (comments.countByUserIdAndCreatedAtAfter(me.id(), Instant.now().minus(Duration.ofMinutes(10))) >= MAX_PER_10_MIN) {
-            throw new BadRequestException("You're commenting a lot. Wait a few minutes and try again.");
+            throw new BadRequestException("err.comment.rate");
         }
         ContentFilter.Result check = filter.check(body);
         if (check.blocked()) throw new BadRequestException(check.reason());
@@ -76,9 +76,13 @@ public class CommentService {
         comments.save(c);
 
         if (!r.getUserId().equals(me.id())) {
-            notifications.send(r.getUserId(), "New comment on your report", preview(check.text()), "/reports/" + reportId);
+            String body = preview(check.text());
+            notifications.sendLocalized(List.of(r.getUserId()),
+                    lang -> new String[] { za.co.crimespot.i18n.Messages.t(lang, "push.comment.title"), body }, "/reports/" + reportId, false);
         }
-        return new PostResult(dto(me, r, c, false), check.reason());
+        String notice = check.reason() == null ? null
+                : za.co.crimespot.i18n.Messages.t(za.co.crimespot.i18n.Localizer.requestLang(), check.reason());
+        return new PostResult(dto(me, r, c, false), notice);
     }
 
     /** Community moderation: each person can flag once; enough flags hide the comment until a moderator looks. */

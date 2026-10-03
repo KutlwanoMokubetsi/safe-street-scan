@@ -26,17 +26,21 @@ public class NotificationService {
     private static final Logger log = LoggerFactory.getLogger(NotificationService.class);
 
     private final PushSubscriptionRepository subscriptions;
+    private final za.co.crimespot.i18n.Localizer localizer;
+    private final FcmSender fcm;
     private final ObjectMapper json;
     private final String publicKey;
     private final String privateKey;
     private final String subject;
     private PushService push;
 
-    public NotificationService(PushSubscriptionRepository subscriptions, ObjectMapper json,
+    public NotificationService(PushSubscriptionRepository subscriptions, ObjectMapper json, za.co.crimespot.i18n.Localizer localizer, FcmSender fcm,
                                @Value("${app.push.public-key:}") String publicKey,
                                @Value("${app.push.private-key:}") String privateKey,
                                @Value("${app.push.subject}") String subject) {
         this.subscriptions = subscriptions;
+        this.localizer = localizer;
+        this.fcm = fcm;
         this.json = json;
         this.publicKey = publicKey;
         this.privateKey = privateKey;
@@ -67,9 +71,19 @@ public class NotificationService {
 
     public String publicKey() { return publicKey; }
 
+    /** Title and body built per recipient language: compose.apply(lang) returns {title, body}. */
+    @Async
+    public void sendLocalized(Collection<UUID> userIds, java.util.function.Function<String, String[]> compose, String url, boolean urgent) {
+        if ((push == null && !fcm.enabled()) || userIds.isEmpty()) return;
+        localizer.byLang(userIds).forEach((lang, users) -> {
+            String[] tb = compose.apply(lang);
+            deliver(users, tb[0], tb[1], url, urgent);
+        });
+    }
+
     @Async
     public void send(UUID userId, String title, String body, String url) {
-        sendToAll(List.of(userId), title, body, url, false);
+        deliver(List.of(userId), title, body, url, false);
     }
 
     /**
@@ -78,7 +92,13 @@ public class NotificationService {
      */
     @Async
     public void sendToAll(Collection<UUID> userIds, String title, String body, String url, boolean urgent) {
-        if (push == null || userIds.isEmpty()) return;
+        deliver(userIds, title, body, url, urgent);
+    }
+
+    private void deliver(Collection<UUID> userIds, String title, String body, String url, boolean urgent) {
+        if (userIds.isEmpty()) return;
+        fcm.send(userIds, title, body, url, urgent); // Android app
+        if (push == null) return;                    // web push (browsers / installed PWA)
         String payload;
         try {
             // Format understood by Angular's service worker (ngsw).

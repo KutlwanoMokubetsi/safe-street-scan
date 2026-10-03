@@ -19,7 +19,11 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(BadRequestException.class)
     public ProblemDetail badRequest(BadRequestException e) {
-        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, e.getMessage());
+        // Messages that are keys ("err.…") are translated into the language the app sent.
+        String m = e.getMessage();
+        String detail = m != null && za.co.crimespot.i18n.Messages.has(m)
+                ? za.co.crimespot.i18n.Messages.t(za.co.crimespot.i18n.Localizer.requestLang(), m) : m;
+        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, detail);
     }
 
     @ExceptionHandler(ConflictException.class)

@@ -14,6 +14,7 @@
 | SOS notifications | Web Push; iPhone only after "Add to Home Screen" | FCM (Android) and APNs (iOS), critical-style alerts |
 | Speed to SOS | Open browser, find tab | App icon long-press shortcut, home-screen widget, notification action |
 | Offline SOS | SMS link if the request fails | Same, plus queued alert that sends when signal returns |
+| **Silent SOS** | Not possible on the web | Discreet trigger with no sound or screen change: Android power-button presses (accessibility/foreground service), iOS via Shortcuts / Action Button; plus a duress-style hidden trigger |
 | Store presence | None | Play Store and App Store listings |
 
 The web app stays live for desktop users and as the fallback. Both use the same API, so features stay in sync.
