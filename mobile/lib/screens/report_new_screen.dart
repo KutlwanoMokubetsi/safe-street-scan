@@ -19,6 +19,24 @@ class ReportNewScreen extends StatefulWidget {
 
 class _ReportNewScreenState extends State<ReportNewScreen> {
   final _map = MapController();
+  bool _ready = false;
+  (LatLng, double)? _pendingMove;
+
+  /// Moving the map before it has been drawn throws, so early moves wait for onMapReady.
+  void _moveTo(LatLng p, double zoom) {
+    if (_ready) {
+      _map.move(p, zoom);
+    } else {
+      _pendingMove = (p, zoom);
+    }
+  }
+
+  void _onReady() {
+    _ready = true;
+    final m = _pendingMove;
+    if (m != null) _map.move(m.$1, m.$2);
+    _pendingMove = null;
+  }
   final _form = GlobalKey<FormState>();
   final _desc = TextEditingController();
   final _place = TextEditingController();
@@ -38,7 +56,7 @@ class _ReportNewScreenState extends State<ReportNewScreen> {
     final p = await currentPosition();
     if (p == null) return;
     setState(() => _pin = LatLng(p.latitude, p.longitude));
-    _map.move(_pin!, 17);
+    _moveTo(_pin!, 17);
   }
 
   Future<void> _pickTime() async {
@@ -98,7 +116,7 @@ class _ReportNewScreenState extends State<ReportNewScreen> {
             child: Stack(children: [
               FlutterMap(
                 mapController: _map,
-                options: MapOptions(initialCenter: _pin ?? defaultCenter, initialZoom: _pin == null ? 14 : 17, onTap: (_, p) => setState(() => _pin = p)),
+                options: MapOptions(initialCenter: _pin ?? defaultCenter, initialZoom: _pin == null ? 14 : 17, onTap: (_, p) => setState(() => _pin = p), onMapReady: _onReady),
                 children: [
                   baseTiles(),
                   if (_pin != null)

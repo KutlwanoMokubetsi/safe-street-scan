@@ -143,3 +143,10 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--i
 .trend-RISING { color: var(--risk); font-weight: 600; }
 .trend-FALLING { color: var(--safe); font-weight: 600; }
 .trend-STEADY { color: var(--muted); }
+
+/* Layout safety (all pages): grid and flex children may shrink below their content's width,
+   and long unbroken text (codes, links, emails) wraps instead of pushing the page sideways. */
+.cols > *, .stack > *, .grid > *, .layout > *, .row > * { min-width: 0; }
+.panel, .panel-body, p, li, h1, h2, h3, dd { overflow-wrap: anywhere; }
+.row { flex-wrap: wrap; }
+img, video { max-width: 100%; }

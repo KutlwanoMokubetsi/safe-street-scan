@@ -38,7 +38,7 @@ const EMAIL = 'kutlwanomokubetsi@gmail.com';
         <div class="ctas">
           <a class="btn btn-vest" routerLink="/login">{{ 'welcome.start' | t }}</a>
           <a class="btn ghost" href="#download">
-            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M17.6 9.48l1.84-3.18a.38.38 0 0 0-.66-.38l-1.86 3.22A11.4 11.4 0 0 0 12 8.1c-1.77 0-3.43.39-4.92 1.04L5.22 5.92a.38.38 0 0 0-.66.38L6.4 9.48A10.8 10.8 0 0 0 1 18h22a10.8 10.8 0 0 0-5.4-8.52zM7 15.25a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5zm10 0a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5z"/></svg>
+            <i class="pi pi-android" aria-hidden="true"></i>
             Android app
           </a>
         </div>
@@ -140,11 +140,11 @@ const EMAIL = 'kutlwanomokubetsi@gmail.com';
         </ul>
         <div class="stores">
           <a class="btn btn-vest big" [href]="apk.universal">
-            <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M17.6 9.48l1.84-3.18a.38.38 0 0 0-.66-.38l-1.86 3.22A11.4 11.4 0 0 0 12 8.1c-1.77 0-3.43.39-4.92 1.04L5.22 5.92a.38.38 0 0 0-.66.38L6.4 9.48A10.8 10.8 0 0 0 1 18h22a10.8 10.8 0 0 0-5.4-8.52zM7 15.25a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5zm10 0a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5z"/></svg>
+            <i class="pi pi-android" aria-hidden="true"></i>
             <span><strong>Download for Android</strong><small>Android 6.0 or newer</small></span>
           </a>
           <div class="ios" aria-label="iPhone app coming soon">
-            <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M16.4 12.6c0-2.4 2-3.6 2.1-3.7-1.1-1.7-2.9-1.9-3.5-1.9-1.5-.2-2.9.9-3.7.9s-1.9-.8-3.2-.8C6.5 7.1 5 8.1 4.1 9.6c-1.8 3.1-.5 7.7 1.3 10.2.9 1.2 1.9 2.6 3.2 2.5 1.3-.1 1.8-.8 3.3-.8s2 .8 3.3.8c1.4 0 2.2-1.2 3.1-2.5 1-1.4 1.4-2.8 1.4-2.9-.1 0-2.7-1-2.7-4.3zM14 5.4c.7-.8 1.2-2 1-3.1-1 0-2.2.7-2.9 1.5-.6.7-1.2 1.9-1 3 1.1.1 2.2-.6 2.9-1.4z"/></svg>
+            <i class="pi pi-apple" aria-hidden="true"></i>
             <span><strong>iPhone</strong><small>Coming soon</small></span>
           </div>
         </div>
@@ -277,6 +277,7 @@ const EMAIL = 'kutlwanomokubetsi@gmail.com';
     .perks li::before { content: ''; position: absolute; left: 0; top: .5em; width: 14px; height: 8px; border-left: 3px solid var(--vest); border-bottom: 3px solid var(--vest); transform: rotate(-45deg); }
     .stores { display: flex; flex-wrap: wrap; gap: 12px; align-items: stretch; }
     .big { min-height: 60px; padding: 10px 22px; gap: 12px; }
+    .big .pi, .ios .pi { font-size: 1.4rem; }
     .big span, .ios span { display: grid; text-align: left; line-height: 1.2; }
     .big small, .ios small { font-weight: 500; font-size: .8rem; opacity: .85; }
     .ios { display: inline-flex; align-items: center; gap: 12px; padding: 10px 22px; min-height: 60px; border-radius: var(--radius-s);
@@ -340,6 +341,10 @@ const EMAIL = 'kutlwanomokubetsi@gmail.com';
       .phone { width: 168px; border-radius: 30px; padding: 8px; }
       .phone img { border-radius: 23px; }
       .contact-row .btn { width: 100%; }
+    }
+    @media (max-width: 400px) {
+      .brand span { display: none; }
+      .lang { max-width: 108px; }
     }
     @media (prefers-reduced-motion: reduce) {
       .pins circle, .hot, .route, .walker, .tag, .ripple, .phone, .in .ico * { animation: none !important; }

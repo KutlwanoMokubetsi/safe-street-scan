@@ -67,7 +67,7 @@ class _ShellState extends State<Shell> {
               decoration: BoxDecoration(color: CS.risk, borderRadius: BorderRadius.circular(18)),
               child: const Text('SOS', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, letterSpacing: 1)),
             ),
-            label: t('sos.title'),
+            label: 'SOS',
           ),
           NavigationDestination(icon: const Icon(Icons.share_location_outlined), selectedIcon: const Icon(Icons.share_location), label: t('nav.live')),
           NavigationDestination(icon: const Icon(Icons.menu), label: t('app.more')),
@@ -80,13 +80,29 @@ class _ShellState extends State<Shell> {
 class _Banners extends StatelessWidget {
   const _Banners();
 
+  /// A banner: message, then actions. On narrow screens or large text the actions move under the message.
   Widget _bar(Color bg, Color fg, List<Widget> children, {VoidCallback? onTap}) => Material(
         color: bg,
         child: InkWell(
           onTap: onTap,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            child: DefaultTextStyle.merge(style: TextStyle(color: fg), child: Row(children: children)),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: DefaultTextStyle.merge(
+              style: TextStyle(color: fg),
+              child: LayoutBuilder(builder: (context, box) {
+                final message = children.whereType<Expanded>().toList();
+                final actions = children.where((w) => w is! Expanded).toList();
+                final scale = MediaQuery.textScalerOf(context).scale(1);
+                if (box.maxWidth >= 480 && scale <= 1.15) return Row(children: children);
+                return Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+                  for (final m in message) m.child,
+                  if (actions.isNotEmpty) Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: Wrap(spacing: 8, runSpacing: 6, crossAxisAlignment: WrapCrossAlignment.center, children: actions),
+                  ),
+                ]);
+              }),
+            ),
           ),
         ),
       );
@@ -132,9 +148,11 @@ class _Banners extends StatelessWidget {
           final due = share?['checkinDueAt'] as String?;
           out.add(_bar(live.myAlert != null ? const Color(0xFFFDECEA) : const Color(0xFFE8F3EE),
               live.myAlert != null ? const Color(0xFF7A1F16) : const Color(0xFF1E5A41), [
-            const Icon(Icons.circle, size: 10),
-            const SizedBox(width: 8),
-            Expanded(child: Text(live.myAlert != null ? t('live.emergencyActive') : t('live.sharing'))),
+            Expanded(child: Row(children: [
+              const Icon(Icons.circle, size: 10),
+              const SizedBox(width: 8),
+              Expanded(child: Text(live.myAlert != null ? t('live.emergencyActive') : t('live.sharing'))),
+            ])),
             if (live.myAlert != null)
               TextButton(onPressed: () => push(const SosScreen()), child: Text(t('live.view')))
             else if (due != null)
@@ -143,7 +161,12 @@ class _Banners extends StatelessWidget {
               TextButton(onPressed: () => _stop(context), child: Text(t('live.stop'))),
           ]));
         }
-        return Column(mainAxisSize: MainAxisSize.min, children: out);
+        if (out.isEmpty) return const SizedBox.shrink();
+        // Urgent banners never take more than a third of the screen; with many, they scroll in place.
+        return ConstrainedBox(
+          constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.34),
+          child: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: out)),
+        );
       },
     );
   }

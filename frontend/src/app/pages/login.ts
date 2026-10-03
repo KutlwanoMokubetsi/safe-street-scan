@@ -41,7 +41,7 @@ import { TPipe } from '../core/i18n';
         </p>
       </main>
 
-      <a routerLink="/welcome" class="back">{{ 'login.back' | t }}</a>
+      <a routerLink="/welcome" class="back"><i class="pi pi-arrow-left" aria-hidden="true"></i> {{ 'login.back' | t }}</a>
     </div>
   `,
   styles: `

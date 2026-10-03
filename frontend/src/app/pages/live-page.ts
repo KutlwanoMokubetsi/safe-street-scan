@@ -67,7 +67,7 @@ import { avatarSrc, initialsOf } from '../core/avatar';
         </section>
 
         <section class="walk">
-          <h2>🚶 {{ 'walk.title' | t }}</h2>
+          <h2><i class="pi pi-directions" aria-hidden="true"></i> {{ 'walk.title' | t }}</h2>
           @if (live.escort()?.asWalker; as w) {
             @if (w.status === 'REQUESTED') {
               <p>{{ 'walk.waiting' | t: { name: w.escortName } }}</p>
@@ -121,7 +121,7 @@ import { avatarSrc, initialsOf } from '../core/avatar';
     </div>
   `,
   styles: `
-    .layout { display: grid; grid-template-columns: 340px 1fr; height: calc(100dvh - var(--chrome-top, 60px) - var(--chrome-bottom, 0px)); }
+    .layout { display: grid; grid-template-columns: 340px 1fr; height: max(460px, calc(100dvh - var(--chrome-top, 60px) - var(--chrome-bottom, 0px))); }
     .side { padding: 20px 16px; overflow-y: auto; background: var(--card); border-right: 1px solid var(--line); }
     .side h1 { margin-bottom: 16px; }
     .side h2 { font-size: 1.1rem; margin-bottom: 8px; }
@@ -154,7 +154,7 @@ import { avatarSrc, initialsOf } from '../core/avatar';
     .map { height: 100%; }
     @media (max-width: 860px) {
       .layout { grid-template-columns: 1fr; height: auto; }
-      .map { order: -1; height: 50vh; }
+      .map { order: -1; height: max(260px, 50vh); }
       .side { border-right: 0; padding-bottom: 88px; }
     }
   `,

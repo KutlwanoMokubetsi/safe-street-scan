@@ -23,7 +23,7 @@ import { APK, isAndroid } from '../core/downloads';
             <span>Location sharing and SOS keep working with your screen off.</span>
           </div>
           <a class="btn btn-vest btn-sm" [href]="apk">Download</a>
-          <button type="button" class="x" (click)="hideAppBanner()" aria-label="Dismiss">×</button>
+          <button type="button" class="x" (click)="hideAppBanner()" aria-label="Dismiss"><i class="pi pi-times" aria-hidden="true"></i></button>
         </div>
       }
       <div class="page-head">
@@ -100,7 +100,7 @@ import { APK, isAndroid } from '../core/downloads';
                     </div>
                     <p class="muted small">{{ h.crimeCount }} incidents · mostly {{ label(h.topCrimeType).toLowerCase() }}</p>
                     <p class="small insight">
-                      @if (h.trend && h.trend !== 'STEADY') { <span class="trend-{{ h.trend }}">{{ h.trend === 'RISING' ? '▲ Rising' : '▼ Falling' }}</span> }
+                      @if (h.trend && h.trend !== 'STEADY') { <span class="trend-{{ h.trend }}"><i class="pi" [class.pi-arrow-up]="h.trend === 'RISING'" [class.pi-arrow-down]="h.trend !== 'RISING'" aria-hidden="true"></i> {{ h.trend === 'RISING' ? 'Rising' : 'Falling' }}</span> }
                       @if (h.peakHours) { <span class="muted">Most incidents {{ h.peakHours }}</span> }
                     </p>
                   </a>

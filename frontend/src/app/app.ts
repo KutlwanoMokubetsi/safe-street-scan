@@ -90,7 +90,7 @@ export class App implements OnInit, AfterViewInit, OnDestroy {
     const root = this.host.nativeElement as HTMLElement;
     const measure = () => {
       let top = 0;
-      root.querySelectorAll(':scope > .bar, :scope > .offline, :scope > .alert-banner, :scope > .walk-banner, :scope > .share-bar')
+      root.querySelectorAll(':scope > .bar, :scope > .notices')
         .forEach(el => (top += (el as HTMLElement).offsetHeight));
       const bottomBar = root.querySelector(':scope > .bottom-bar') as HTMLElement | null;
       const bottom = bottomBar && getComputedStyle(bottomBar).display !== 'none' ? bottomBar.offsetHeight : 0;

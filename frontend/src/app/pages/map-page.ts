@@ -40,16 +40,16 @@ const CLUSTER_PX = 56;
       </div>
 
       <div class="fabs">
-        <button type="button" class="fab power" (click)="powerOpen.set(true)" [attr.aria-label]="'outage.button' | t">⚡</button>
+        <button type="button" class="fab power" (click)="powerOpen.set(true)" [attr.aria-label]="'outage.button' | t"><i class="pi pi-bolt" aria-hidden="true"></i></button>
         <button type="button" class="fab" (click)="locate()" aria-label="Go to my location">
-          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><circle cx="12" cy="12" r="4" fill="currentColor"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+          <i class="pi pi-compass" aria-hidden="true"></i>
         </button>
         <a class="fab report" routerLink="/report" [queryParams]="center()">Report here</a>
       </div>
 
       @if (selected(); as r) {
         <div class="sheet" role="dialog" aria-label="Report details">
-          <button type="button" class="close" (click)="selected.set(null)" aria-label="Close">×</button>
+          <button type="button" class="close" (click)="selected.set(null)" aria-label="Close"><i class="pi pi-times" aria-hidden="true"></i></button>
           <div class="sheet-head">
             <span class="type-tag" [style.--c]="color(r.crimeType)">{{ label(r.crimeType) }}</span>
             <span class="status-{{ r.status }} small">{{ r.status === 'VERIFIED' ? 'Verified' : 'Unverified' }}</span>
@@ -57,20 +57,20 @@ const CLUSTER_PX = 56;
           <p class="desc">{{ r.description }}</p>
           <p class="muted small">{{ r.locationName || 'Pinned location' }} · {{ ago(r.occurredAt) }}</p>
           @if (r.source === 'NEWS') { <p class="small muted">From the news, checked by a moderator</p> }
-          @if (r.reporterTrusted) { <p class="small trusted">✓ {{ 'seen.trusted' | t }}</p> }
-          @if (r.confirmations) { <p class="small muted">👁 {{ 'seen.count' | t: { n: r.confirmations } }}</p> }
+          @if (r.reporterTrusted) { <p class="small trusted"><i class="pi pi-verified" aria-hidden="true"></i> {{ 'seen.trusted' | t }}</p> }
+          @if (r.confirmations) { <p class="small muted"><i class="pi pi-eye" aria-hidden="true"></i> {{ 'seen.count' | t: { n: r.confirmations } }}</p> }
           <a class="btn btn-sm open" [routerLink]="['/reports', r.id]">Details and comments</a>
         </div>
       } @else if (zone(); as z) {
         <div class="sheet" role="dialog" aria-label="Power outage">
-          <button type="button" class="close" (click)="zone.set(null)" aria-label="Close">×</button>
-          <h2>⚡ {{ 'outage.zone' | t: { n: z.reports, t: hhmm(z.since) } }}</h2>
+          <button type="button" class="close" (click)="zone.set(null)" aria-label="Close"><i class="pi pi-times" aria-hidden="true"></i></button>
+          <h2><i class="pi pi-bolt bolt-ico" aria-hidden="true"></i> {{ 'outage.zone' | t: { n: z.reports, t: hhmm(z.since) } }}</h2>
           @if (z.hotspot) { <p class="warn-text">{{ 'outage.hotspot' | t: { name: z.hotspot } }}</p> }
         </div>
       } @else if (powerOpen()) {
         <div class="sheet" role="dialog" [attr.aria-label]="'outage.button' | t">
-          <button type="button" class="close" (click)="powerOpen.set(false)" aria-label="Close">×</button>
-          <h2>⚡ {{ 'outage.button' | t }}</h2>
+          <button type="button" class="close" (click)="powerOpen.set(false)" aria-label="Close"><i class="pi pi-times" aria-hidden="true"></i></button>
+          <h2><i class="pi pi-bolt bolt-ico" aria-hidden="true"></i> {{ 'outage.button' | t }}</h2>
           <p class="muted small">{{ 'outage.help' | t }}</p>
           <div class="row-btns">
             <button class="btn btn-ink" type="button" (click)="powerOut()">{{ 'outage.out' | t }}</button>
@@ -79,7 +79,7 @@ const CLUSTER_PX = 56;
         </div>
       } @else if (spot(); as h) {
         <div class="sheet" role="dialog" aria-label="Hotspot details">
-          <button type="button" class="close" (click)="spot.set(null)" aria-label="Close">×</button>
+          <button type="button" class="close" (click)="spot.set(null)" aria-label="Close"><i class="pi pi-times" aria-hidden="true"></i></button>
           <div class="sheet-head">
             <h2>{{ h.name }}</h2>
             <span class="risk" [style.color]="risk(h.intensityScore).color">{{ risk(h.intensityScore).label }} risk</span>
@@ -88,8 +88,8 @@ const CLUSTER_PX = 56;
           <p class="small"><strong>{{ 'risk.now' | t }}:</strong>
             <span [style.color]="risk(h.riskNow ?? h.intensityScore).color">{{ risk(h.riskNow ?? h.intensityScore).label }}</span>
             @if (h.peakDays) { · {{ (h.peakDays === 'WEEKEND' ? 'risk.weekends' : 'risk.weekdays') | t }} }</p>
-          @if (h.trend === 'RISING') { <p class="trend-RISING small">▲ Rising: more incidents this week than usual</p> }
-          @if (h.trend === 'FALLING') { <p class="trend-FALLING small">▼ Falling: fewer incidents this week than usual</p> }
+          @if (h.trend === 'RISING') { <p class="trend-RISING small"><i class="pi pi-arrow-up" aria-hidden="true"></i> Rising: more incidents this week than usual</p> }
+          @if (h.trend === 'FALLING') { <p class="trend-FALLING small"><i class="pi pi-arrow-down" aria-hidden="true"></i> Falling: fewer incidents this week than usual</p> }
           @if (h.peakHours) { <p class="small">Most incidents happen <strong>{{ h.peakHours }}</strong>.</p> }
         </div>
       }
@@ -97,7 +97,7 @@ const CLUSTER_PX = 56;
   `,
   styles: `
     /* Exactly the space between the header/banners and the mobile bottom bar (measured in App). */
-    .wrap { position: relative; height: calc(100dvh - var(--chrome-top, 60px) - var(--chrome-bottom, 0px)); }
+    .wrap { position: relative; height: max(340px, calc(100dvh - var(--chrome-top, 60px) - var(--chrome-bottom, 0px))); }
     .map { position: absolute; inset: 0; }
     .chips {
       position: absolute; z-index: 500; top: 12px; left: 12px; right: 12px;

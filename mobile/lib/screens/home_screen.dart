@@ -178,8 +178,8 @@ class _HomeScreenState extends State<HomeScreen> {
         const SizedBox(height: 4),
         Wrap(spacing: 10, children: [
           Text('${h.integer('crimeCount')} incidents · mostly ${crimeLabel(h.opt('topCrimeType')).toLowerCase()}', style: const TextStyle(color: CS.muted, fontSize: 13)),
-          if (h['trend'] == 'RISING') const Text('▲ Rising', style: TextStyle(color: CS.risk, fontWeight: FontWeight.w600, fontSize: 13)),
-          if (h['trend'] == 'FALLING') const Text('▼ Falling', style: TextStyle(color: CS.safe, fontWeight: FontWeight.w600, fontSize: 13)),
+          if (h['trend'] == 'RISING') const IconLabel(Icons.trending_up, 'Rising', color: CS.risk, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13), size: 16),
+          if (h['trend'] == 'FALLING') const IconLabel(Icons.trending_down, 'Falling', color: CS.safe, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13), size: 16),
           if (h['peakHours'] != null) Text('Most incidents ${h['peakHours']}', style: const TextStyle(color: CS.muted, fontSize: 13)),
         ]),
       ]),

@@ -91,8 +91,9 @@ class Constrained extends StatelessWidget {
 }
 
 class SectionCard extends StatelessWidget {
-  const SectionCard({super.key, this.title, this.trailing, required this.child, this.padding = const EdgeInsets.all(16)});
+  const SectionCard({super.key, this.title, this.titleIcon, this.trailing, required this.child, this.padding = const EdgeInsets.all(16)});
   final String? title;
+  final IconData? titleIcon;
   final Widget? trailing;
   final Widget child;
   final EdgeInsets padding;
@@ -105,6 +106,7 @@ class SectionCard extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.only(bottom: 10),
                 child: Row(children: [
+                  if (titleIcon != null) Padding(padding: const EdgeInsets.only(right: 8), child: Icon(titleIcon)),
                   Expanded(child: Text(title!, style: Theme.of(context).textTheme.titleLarge)),
                   if (trailing != null) trailing!,
                 ]),
@@ -217,4 +219,20 @@ class Skeleton extends StatelessWidget {
             ),
         ]),
       );
+}
+
+/// An icon followed by text, for headings and inline labels (icons come from Material Icons, never emoji).
+class IconLabel extends StatelessWidget {
+  const IconLabel(this.icon, this.text, {super.key, this.color, this.style, this.size = 20});
+  final IconData icon;
+  final String text;
+  final Color? color;
+  final TextStyle? style;
+  final double size;
+  @override
+  Widget build(BuildContext context) => Row(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.center, children: [
+        Icon(icon, size: size, color: color ?? style?.color),
+        const SizedBox(width: 6),
+        Flexible(child: Text(text, style: (style ?? const TextStyle()).copyWith(color: color ?? style?.color))),
+      ]);
 }

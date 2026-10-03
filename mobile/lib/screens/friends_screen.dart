@@ -104,12 +104,15 @@ class _FriendsScreenState extends State<FriendsScreen> {
                     const SizedBox(height: 16),
                     SectionCard(title: 'Requests for you', child: Column(children: [
                       for (final e in d.list('incoming'))
-                        ListTile(
-                          contentPadding: EdgeInsets.zero,
-                          title: Text((e['person'] as Map)['name'] as String),
-                          trailing: Wrap(spacing: 4, children: [
-                            TextButton(onPressed: () => _act(() => Api.instance.delete('/api/friends/${e['friendshipId']}'), 'Request declined.'), child: const Text('Decline')),
-                            FilledButton(style: safeButton(), onPressed: () => _act(() => Api.instance.post('/api/friends/requests/${e['friendshipId']}/accept'), 'You are now friends.'), child: const Text('Accept')),
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                            Text((e['person'] as Map)['name'] as String, style: const TextStyle(fontWeight: FontWeight.w600)),
+                            const SizedBox(height: 6),
+                            Wrap(spacing: 8, runSpacing: 6, children: [
+                              FilledButton(style: safeButton(), onPressed: () => _act(() => Api.instance.post('/api/friends/requests/${e['friendshipId']}/accept'), 'You are now friends.'), child: const Text('Accept')),
+                              OutlinedButton(onPressed: () => _act(() => Api.instance.delete('/api/friends/${e['friendshipId']}'), 'Request declined.'), child: const Text('Decline')),
+                            ]),
                           ]),
                         ),
                     ])),

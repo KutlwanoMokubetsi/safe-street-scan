@@ -77,7 +77,8 @@ class _LiveScreenState extends State<LiveScreen> {
         final share = live.myShare;
         final visible = live.friendsSharing.where((f) => f['latitude'] != null).toList();
         return LayoutBuilder(builder: (context, box) {
-          final wide = box.maxWidth > 720;
+          // Side by side on tablets and on phones in landscape (a stacked map would leave no room).
+          final wide = box.maxWidth > 720 || (box.maxWidth > box.maxHeight && box.maxWidth >= 560);
           final map = SizedBox(
             height: wide ? null : 260,
             child: FlutterMap(
@@ -202,7 +203,7 @@ class _LiveScreenState extends State<LiveScreen> {
   Widget _walkCard(Live live) {
     final w = live.walk;
     return SectionCard(
-      title: '🚶 ${t('walk.title')}',
+      title: t('walk.title'), titleIcon: Icons.directions_walk,
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         if (w != null && w['status'] == 'REQUESTED') ...[
           Text(t('walk.waiting', {'name': w['escortName']})),

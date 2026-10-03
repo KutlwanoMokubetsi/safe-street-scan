@@ -50,18 +50,18 @@ type Phase = 'setup' | 'waiting' | 'ringing' | 'talking';
         @if (phase() === 'ringing') {
           <div class="buttons">
             <button type="button" class="round decline" (click)="reset()" [attr.aria-label]="'fake.decline' | t">
-              <svg viewBox="0 0 24 24" width="34" height="34"><path fill="#fff" d="M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .39-.23.74-.56.9-.98.49-1.87 1.12-2.66 1.85-.18.18-.43.28-.7.28-.28 0-.53-.11-.71-.29L.29 13.08a.956.956 0 0 1 0-1.36C3.34 8.78 7.46 7 12 7s8.66 1.78 11.71 4.72c.18.18.29.43.29.71 0 .28-.11.53-.29.71l-2.48 2.48c-.18.18-.43.29-.71.29-.27 0-.52-.11-.7-.28a11.27 11.27 0 0 0-2.67-1.85.996.996 0 0 1-.56-.9v-3.1C15.15 9.25 13.6 9 12 9z"/></svg>
+              <i class="pi pi-phone end" aria-hidden="true"></i>
               <span>{{ 'fake.decline' | t }}</span>
             </button>
             <button type="button" class="round accept" (click)="answer()" [attr.aria-label]="'fake.accept' | t">
-              <svg viewBox="0 0 24 24" width="34" height="34"><path fill="#fff" d="M6.62 10.79a15.05 15.05 0 0 0 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1C10.61 21 3 13.39 3 4c0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
+              <i class="pi pi-phone" aria-hidden="true"></i>
               <span>{{ 'fake.accept' | t }}</span>
             </button>
           </div>
         } @else {
           <div class="buttons single">
             <button type="button" class="round decline" (click)="reset()" [attr.aria-label]="'fake.end' | t">
-              <svg viewBox="0 0 24 24" width="34" height="34"><path fill="#fff" d="M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .39-.23.74-.56.9-.98.49-1.87 1.12-2.66 1.85-.18.18-.43.28-.7.28-.28 0-.53-.11-.71-.29L.29 13.08a.956.956 0 0 1 0-1.36C3.34 8.78 7.46 7 12 7s8.66 1.78 11.71 4.72c.18.18.29.43.29.71 0 .28-.11.53-.29.71l-2.48 2.48c-.18.18-.43.29-.71.29-.27 0-.52-.11-.7-.28a11.27 11.27 0 0 0-2.67-1.85.996.996 0 0 1-.56-.9v-3.1C15.15 9.25 13.6 9 12 9z"/></svg>
+              <i class="pi pi-phone end" aria-hidden="true"></i>
               <span>{{ 'fake.end' | t }}</span>
             </button>
           </div>
@@ -93,9 +93,10 @@ type Phase = 'setup' | 'waiting' | 'ringing' | 'talking';
     .buttons { display: flex; justify-content: space-around; }
     .buttons.single { justify-content: center; }
     .round { display: flex; flex-direction: column; align-items: center; gap: 10px; background: none; border: 0; color: #fff; font: 500 .95rem var(--font-body); cursor: pointer; }
-    .round svg { width: 72px; height: 72px; padding: 19px; border-radius: 50%; box-sizing: border-box; }
-    .decline svg { background: #E5484D; }
-    .accept svg { background: #30A46C; animation: bob 1.2s ease-in-out infinite; }
+    .round .pi { width: 72px; height: 72px; border-radius: 50%; display: grid; place-items: center; font-size: 1.9rem; }
+    .round .pi.end { transform: rotate(135deg); }
+    .decline .pi { background: #E5484D; }
+    .accept .pi { background: #30A46C; animation: bob 1.2s ease-in-out infinite; }
     @keyframes bob { 50% { transform: translateY(-6px); } }
   `,
 })

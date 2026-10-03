@@ -14,7 +14,7 @@ public final class Messages {
     public static final Set<String> LANGS = Set.of("en", "af", "zu", "xh");
 
     private static final Map<String, String[]> T = Map.ofEntries(
-        e("push.sos.title", "🚨 {name} needs help", "🚨 {name} het hulp nodig", "🚨 U-{name} udinga usizo", "🚨 U-{name} ufuna uncedo"),
+        e("push.sos.title", "SOS: {name} needs help", "SOS: {name} het hulp nodig", "SOS: U-{name} udinga usizo", "SOS: U-{name} ufuna uncedo"),
         e("push.sos.body", "Tap to see where they are and call them.", "Tik om te sien waar hulle is en bel hulle.", "Thepha ukuze ubone ukuthi ukuphi futhi umshayele.", "Cofa ukuze ubone ukuba uphi uze umtsalele."),
         e("push.safe.title", "{name} is safe", "{name} is veilig", "U-{name} uphephile", "U-{name} ukhuselekile"),
         e("push.safe.body", "{name} ended their emergency alert.", "{name} het hul noodwaarskuwing beëindig.", "U-{name} uqede isexwayiso sakhe.", "U-{name} uphelise isilumkiso sakhe."),

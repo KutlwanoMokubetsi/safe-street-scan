@@ -184,10 +184,16 @@ class _SosScreenState extends State<SosScreen> with SingleTickerProviderStateMix
                               decoration: const BoxDecoration(color: CS.risk, shape: BoxShape.circle),
                               alignment: Alignment.center,
                               padding: const EdgeInsets.all(20),
-                              child: Text(
-                                _sending ? t('sos.sending') : _hold.value > 0 ? t('sos.keepHolding') : t('sos.hold'),
-                                textAlign: TextAlign.center,
-                                style: Theme.of(context).textTheme.headlineSmall?.copyWith(color: Colors.white),
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: ConstrainedBox(
+                                  constraints: const BoxConstraints(maxWidth: 164),
+                                  child: Text(
+                                    _sending ? t('sos.sending') : _hold.value > 0 ? t('sos.keepHolding') : t('sos.hold'),
+                                    textAlign: TextAlign.center,
+                                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(color: Colors.white),
+                                  ),
+                                ),
                               ),
                             ),
                           ]),

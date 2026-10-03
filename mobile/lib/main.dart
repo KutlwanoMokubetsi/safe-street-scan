@@ -80,6 +80,11 @@ class _CrimeSpotAppState extends State<CrimeSpotApp> {
         debugShowCheckedModeBanner: false,
         theme: buildTheme(Brightness.light),
         darkTheme: buildTheme(Brightness.dark),
+        // Respect the phone's text size up to 150% (still very large); beyond that fixed layouts break.
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(context).copyWith(textScaler: MediaQuery.textScalerOf(context).clamp(maxScaleFactor: 1.5)),
+          child: child ?? const SizedBox.shrink(),
+        ),
         home: _restoring
             ? const _Splash()
             : ValueListenableBuilder<bool>(

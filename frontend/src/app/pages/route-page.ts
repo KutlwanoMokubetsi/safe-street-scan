@@ -78,7 +78,7 @@ import { ToastService } from '../core/toast.service';
     </div>
   `,
   styles: `
-    .layout { display: grid; grid-template-columns: 360px 1fr; height: calc(100dvh - var(--chrome-top, 60px) - var(--chrome-bottom, 0px)); }
+    .layout { display: grid; grid-template-columns: 360px 1fr; height: max(460px, calc(100dvh - var(--chrome-top, 60px) - var(--chrome-bottom, 0px))); }
     .side { padding: 20px 16px; overflow-y: auto; background: var(--card); border-right: 1px solid var(--line); }
     .side h1 { margin-bottom: 4px; }
     .side > p { margin-bottom: 16px; }
@@ -105,7 +105,7 @@ import { ToastService } from '../core/toast.service';
     .map { height: 100%; }
     @media (max-width: 860px) {
       .layout { grid-template-columns: 1fr; height: auto; }
-      .map { order: -1; height: 45vh; }
+      .map { order: -1; height: max(260px, 45vh); }
       .side { border-right: 0; padding-bottom: 88px; }
     }
   `,

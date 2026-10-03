@@ -153,7 +153,7 @@ const T: Record<string, [string, string, string, string]> = {
   'login.google': ['Continue with Google', 'Gaan voort met Google', 'Qhubeka nge-Google', 'Qhubeka nge-Google'],
   'login.email': ['Sign in with email', 'Meld aan met e-pos', 'Ngena nge-imeyili', 'Ngena nge-imeyile'],
   'login.create': ['Create an account with email', "Skep 'n rekening met e-pos", 'Vula i-akhawunti nge-imeyili', 'Yenza iakhawunti nge-imeyile'],
-  'login.back': ['← Back to home', '← Terug na tuis', '← Buyela ekhaya', '← Buyela ekhaya'],
+  'login.back': ['Back to home', 'Terug na tuis', 'Buyela ekhaya', 'Buyela ekhaya'],
 
   'nav.groups': ['Groups', 'Groepe', 'Amaqembu', 'Amaqela'],
   'common.apiDown': ["CrimeSpot's server isn't responding. If you're in danger, call 10111. SOS will offer to text your friends.",

@@ -18,6 +18,24 @@ class RouteScreen extends StatefulWidget {
 
 class _RouteScreenState extends State<RouteScreen> {
   final _map = MapController();
+  bool _ready = false;
+  (LatLng, double)? _pendingMove;
+
+  /// Moving the map before it has been drawn throws, so early moves wait for onMapReady.
+  void _moveTo(LatLng p, double zoom) {
+    if (_ready) {
+      _map.move(p, zoom);
+    } else {
+      _pendingMove = (p, zoom);
+    }
+  }
+
+  void _onReady() {
+    _ready = true;
+    final m = _pendingMove;
+    if (m != null) _map.move(m.$1, m.$2);
+    _pendingMove = null;
+  }
   final _query = TextEditingController();
   LatLng? _from, _to;
   bool _walk = true, _busy = false;
@@ -48,7 +66,7 @@ class _RouteScreenState extends State<RouteScreen> {
       return;
     }
     setState(() => _from = LatLng(p.latitude, p.longitude));
-    _map.move(_from!, 15);
+    _moveTo(_from!, 15);
   }
 
   void _search(String q) {
@@ -97,7 +115,7 @@ class _RouteScreenState extends State<RouteScreen> {
 
   void _fit() {
     final s = _selected;
-    if (s == null) return;
+    if (s == null || !_ready) return;
     _map.fitCamera(CameraFit.bounds(bounds: LatLngBounds.fromPoints(_path(s)), padding: const EdgeInsets.all(40)));
   }
 
@@ -126,12 +144,11 @@ class _RouteScreenState extends State<RouteScreen> {
     final routes = _plan?.list('routes') ?? [];
     return Scaffold(
       appBar: AppBar(title: Text(t('nav.route'))),
-      body: Column(children: [
-        SizedBox(
-          height: 280,
-          child: FlutterMap(
+      body: LayoutBuilder(builder: (context, box) {
+        final wide = box.maxWidth > 720 || (box.maxWidth > box.maxHeight && box.maxWidth >= 560);
+        final map = FlutterMap(
             mapController: _map,
-            options: MapOptions(initialCenter: defaultCenter, initialZoom: 14, onTap: (_, p) { _query.clear(); _setTo(p); }),
+            options: MapOptions(initialCenter: defaultCenter, initialZoom: 14, onTap: (_, p) { _query.clear(); _setTo(p); }, onMapReady: _onReady),
             children: [
               baseTiles(),
               CircleLayer(circles: [
@@ -151,10 +168,8 @@ class _RouteScreenState extends State<RouteScreen> {
               ]),
               osmAttribution(),
             ],
-          ),
-        ),
-        Expanded(
-          child: Constrained(
+          );
+        final panel = Constrained(
             child: ListView(padding: const EdgeInsets.all(16), children: [
               Text(t('route.intro'), style: const TextStyle(color: CS.muted)),
               const SizedBox(height: 10),
@@ -164,7 +179,7 @@ class _RouteScreenState extends State<RouteScreen> {
                 ListTile(
                   title: Text(r.str('name')),
                   subtitle: Text(r.str('detail'), maxLines: 1, overflow: TextOverflow.ellipsis),
-                  onTap: () { _query.text = r.str('name'); _setTo(LatLng(r.dbl('lat'), r.dbl('lng'))); _map.move(_to!, 15); },
+                  onTap: () { _query.text = r.str('name'); _setTo(LatLng(r.dbl('lat'), r.dbl('lng'))); _moveTo(_to!, 15); },
                 ),
               const SizedBox(height: 10),
               SegmentedButton<bool>(
@@ -208,9 +223,10 @@ class _RouteScreenState extends State<RouteScreen> {
                 Text(t('route.shareNote'), style: const TextStyle(color: CS.muted, fontSize: 13)),
               ],
             ]),
-          ),
-        ),
-      ]),
+          );
+        if (wide) return Row(children: [SizedBox(width: 380, child: panel), Expanded(child: map)]);
+        return Column(children: [SizedBox(height: (box.maxHeight * 0.4).clamp(200.0, 300.0).toDouble(), child: map), Expanded(child: panel)]);
+      }),
     );
   }
 }

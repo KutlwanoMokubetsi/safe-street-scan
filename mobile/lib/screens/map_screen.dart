@@ -25,6 +25,8 @@ class MapScreen extends StatefulWidget {
 
 class _MapScreenState extends State<MapScreen> {
   final _map = MapController();
+  bool _ready = false;
+  (LatLng, double)? _pendingMove;
   List<Map<String, dynamic>> _reports = [], _hotspots = [], _zones = [];
   bool _mineOutage = false;
   LatLng? _me;
@@ -72,12 +74,8 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   Future<void> _fetch() async {
-    LatLngBounds b;
-    try {
-      b = _map.camera.visibleBounds;
-    } catch (_) {
-      return; // map not laid out yet
-    }
+    if (!_ready) return;
+    final LatLngBounds b = _map.camera.visibleBounds;
     setState(() => _loading = true);
     try {
       final padLat = (b.north - b.south) * 0.25, padLng = (b.east - b.west) * 0.25;
@@ -106,6 +104,15 @@ class _MapScreenState extends State<MapScreen> {
     }
   }
 
+  /// Moving the map before it has been drawn throws, so early moves wait for onMapReady.
+  void _moveTo(LatLng p, double zoom) {
+    if (_ready) {
+      _map.move(p, zoom);
+    } else {
+      _pendingMove = (p, zoom);
+    }
+  }
+
   Future<void> _locate({bool move = false}) async {
     final p = await currentPosition();
     if (p == null) {
@@ -113,57 +120,7 @@ class _MapScreenState extends State<MapScreen> {
       return;
     }
     setState(() => _me = LatLng(p.latitude, p.longitude));
-    _map.move(_me!, 15);
-  }
-
-  /// Groups reports that are close on screen at this zoom (same approach as the web map).
-  List<Widget> _markers() {
-    final cam = _map.camera;
-    final visible = _reports.where((r) => _shown.contains(severityOf(r.opt('crimeType')))).toList();
-    final cells = <String, List<Map<String, dynamic>>>{};
-    for (final r in visible) {
-      final p = cam.projectAtZoom(LatLng(r.dbl('latitude'), r.dbl('longitude')));
-      cells.putIfAbsent('${(p.dx / 56).floor()}:${(p.dy / 56).floor()}', () => []).add(r);
-    }
-    final markers = <Marker>[];
-    for (final g in cells.values) {
-      if (g.length == 1) {
-        final r = g.first;
-        markers.add(Marker(
-          point: LatLng(r.dbl('latitude'), r.dbl('longitude')),
-          width: 34, height: 34,
-          child: Semantics(
-            button: true,
-            label: crimeLabel(r.opt('crimeType')),
-            child: GestureDetector(onTap: () => _showReport(r), child: Center(child: dot(severityColors[severityOf(r.opt('crimeType'))]!, hollow: r['status'] != 'VERIFIED'))),
-          ),
-        ));
-      } else {
-        final lat = g.map((r) => r.dbl('latitude')).reduce((a, b) => a + b) / g.length;
-        final lng = g.map((r) => r.dbl('longitude')).reduce((a, b) => a + b) / g.length;
-        final size = math.min(52.0, 32 + (math.log(g.length) / math.ln2) * 6);
-        markers.add(Marker(
-          point: LatLng(lat, lng),
-          width: size, height: size,
-          child: Semantics(
-            button: true,
-            label: '${g.length} reports',
-            child: GestureDetector(
-              onTap: () => _map.fitCamera(CameraFit.bounds(
-                  bounds: LatLngBounds.fromPoints([for (final r in g) LatLng(r.dbl('latitude'), r.dbl('longitude'))]),
-                  padding: const EdgeInsets.all(60), maxZoom: 18)),
-              child: Container(
-                decoration: BoxDecoration(color: CS.ink, shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 3),
-                    boxShadow: const [BoxShadow(color: Colors.black38, blurRadius: 5)]),
-                alignment: Alignment.center,
-                child: Text('${g.length}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
-              ),
-            ),
-          ),
-        ));
-      }
-    }
-    return [MarkerLayer(markers: markers)];
+    _moveTo(_me!, 15);
   }
 
   void _showReport(Map<String, dynamic> r) => showModalBottomSheet(
@@ -177,8 +134,9 @@ class _MapScreenState extends State<MapScreen> {
             Text(r.str('description')),
             const SizedBox(height: 6),
             Text('${r.opt('locationName') ?? 'Pinned location'} · ${timeAgo(r.opt('occurredAt'))}', style: const TextStyle(color: CS.muted)),
-            if (r.flag('reporterTrusted')) Padding(padding: const EdgeInsets.only(top: 6), child: Text('✓ ${t('seen.trusted')}', style: const TextStyle(color: CS.safe, fontWeight: FontWeight.w600))),
-            if (r.integer('confirmations') > 0) Text(t('seen.count', {'n': r.integer('confirmations')}), style: const TextStyle(color: CS.muted)),
+            if (r.flag('reporterTrusted')) Padding(padding: const EdgeInsets.only(top: 6),
+                child: IconLabel(Icons.verified, t('seen.trusted'), color: CS.safe, style: const TextStyle(fontWeight: FontWeight.w600), size: 18)),
+            if (r.integer('confirmations') > 0) IconLabel(Icons.visibility_outlined, t('seen.count', {'n': r.integer('confirmations')}), color: CS.muted, size: 18),
             const SizedBox(height: 14),
             FilledButton(onPressed: () { Navigator.pop(c); push(ReportDetailScreen(id: r.str('id'))); }, child: const Text('Details and comments')),
           ]),
@@ -203,8 +161,8 @@ class _MapScreenState extends State<MapScreen> {
             if (h['peakDays'] != null) TextSpan(text: ' · ${t(h['peakDays'] == 'WEEKEND' ? 'risk.weekends' : 'risk.weekdays')}'),
           ])),
           if (h['peakHours'] != null) Text('Most incidents happen ${h['peakHours']}.'),
-          if (h['trend'] == 'RISING') const Text('▲ Rising: more incidents this week than usual', style: TextStyle(color: CS.risk)),
-          if (h['trend'] == 'FALLING') const Text('▼ Falling: fewer incidents this week than usual', style: TextStyle(color: CS.safe)),
+          if (h['trend'] == 'RISING') const IconLabel(Icons.trending_up, 'Rising: more incidents this week than usual', color: CS.risk, size: 18),
+          if (h['trend'] == 'FALLING') const IconLabel(Icons.trending_down, 'Falling: fewer incidents this week than usual', color: CS.safe, size: 18),
         ]),
       ),
     );
@@ -216,7 +174,7 @@ class _MapScreenState extends State<MapScreen> {
         builder: (c) => Padding(
           padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
           child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('⚡ ${t('outage.zone', {'n': z.integer('reports'), 't': hhmm(z.opt('since'))})}', style: Theme.of(context).textTheme.titleMedium),
+            IconLabel(Icons.bolt, t('outage.zone', {'n': z.integer('reports'), 't': hhmm(z.opt('since'))}), color: const Color(0xFFB8860B), style: Theme.of(context).textTheme.titleMedium),
             if (z['hotspot'] != null) Padding(padding: const EdgeInsets.only(top: 8),
                 child: Text(t('outage.hotspot', {'name': z['hotspot']}), style: const TextStyle(color: Color(0xFF8A5A00), fontWeight: FontWeight.w600))),
           ]),
@@ -229,7 +187,7 @@ class _MapScreenState extends State<MapScreen> {
         builder: (c) => Padding(
           padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
           child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            Text('⚡ ${t('outage.button')}', style: Theme.of(context).textTheme.titleLarge),
+            IconLabel(Icons.bolt, t('outage.button'), color: const Color(0xFFB8860B), style: Theme.of(context).textTheme.titleLarge, size: 26),
             const SizedBox(height: 6),
             Text(t('outage.help'), style: const TextStyle(color: CS.muted)),
             const SizedBox(height: 14),
@@ -280,10 +238,15 @@ class _MapScreenState extends State<MapScreen> {
         options: MapOptions(
           initialCenter: widget.focus ?? defaultCenter,
           initialZoom: widget.focus != null ? 16 : 14,
-          onMapReady: _reload,
+          onMapReady: () {
+            _ready = true;
+            final m = _pendingMove;
+            if (m != null) _map.move(m.$1, m.$2);
+            _pendingMove = null;
+            _reload();
+          },
           onMapEvent: (e) {
             if (e is MapEventMoveEnd || e is MapEventFlingAnimationEnd || e is MapEventDoubleTapZoomEnd || e is MapEventScrollWheelZoom) _reload();
-            if (e is MapEventMove) setState(() {}); // re-cluster while zooming
           },
         ),
         children: [
@@ -309,7 +272,10 @@ class _MapScreenState extends State<MapScreen> {
               Marker(point: LatLng(z.dbl('lat'), z.dbl('lng')), width: 40, height: 40,
                   child: Semantics(button: true, label: 'Power outage', child: GestureDetector(onTap: () => _showZone(z), child: const Icon(Icons.bolt, color: Color(0xFFB8860B), size: 26)))),
           ]),
-          ..._markers(),
+          _ClusterLayer(
+            reports: _reports.where((r) => _shown.contains(severityOf(r.opt('crimeType')))).toList(),
+            onReport: _showReport,
+          ),
           if (_me != null) MarkerLayer(markers: [Marker(point: _me!, width: 22, height: 22, child: meDot())]),
           osmAttribution(),
         ],
@@ -352,5 +318,65 @@ class _MapScreenState extends State<MapScreen> {
       ),
     ]);
     return widget.standalone ? Scaffold(appBar: AppBar(title: Text(t('nav.map'))), body: body) : body;
+  }
+}
+
+/// Report markers grouped by screen distance at the current zoom. As a map layer it reads the camera from
+/// the map (MapCamera.of), so it's only built once the map exists and re-clusters on its own as you zoom.
+class _ClusterLayer extends StatelessWidget {
+  const _ClusterLayer({required this.reports, required this.onReport});
+  final List<Map<String, dynamic>> reports;
+  final void Function(Map<String, dynamic>) onReport;
+
+  @override
+  Widget build(BuildContext context) {
+    final cam = MapCamera.of(context);
+    final cells = <String, List<Map<String, dynamic>>>{};
+    for (final r in reports) {
+      final p = cam.projectAtZoom(LatLng(r.dbl('latitude'), r.dbl('longitude')));
+      cells.putIfAbsent('${(p.dx / 56).floor()}:${(p.dy / 56).floor()}', () => []).add(r);
+    }
+    final markers = <Marker>[];
+    for (final g in cells.values) {
+      if (g.length == 1) {
+        final r = g.first;
+        markers.add(Marker(
+          point: LatLng(r.dbl('latitude'), r.dbl('longitude')),
+          width: 40, height: 40,
+          child: Semantics(
+            button: true,
+            label: crimeLabel(r.opt('crimeType')),
+            child: GestureDetector(
+              onTap: () => onReport(r),
+              child: Center(child: dot(severityColors[severityOf(r.opt('crimeType'))]!, hollow: r['status'] != 'VERIFIED')),
+            ),
+          ),
+        ));
+      } else {
+        final lat = g.map((r) => r.dbl('latitude')).reduce((a, b) => a + b) / g.length;
+        final lng = g.map((r) => r.dbl('longitude')).reduce((a, b) => a + b) / g.length;
+        final size = math.min(52.0, 32 + (math.log(g.length) / math.ln2) * 6);
+        markers.add(Marker(
+          point: LatLng(lat, lng),
+          width: size, height: size,
+          child: Semantics(
+            button: true,
+            label: '${g.length} reports',
+            child: GestureDetector(
+              onTap: () => MapController.of(context).fitCamera(CameraFit.bounds(
+                  bounds: LatLngBounds.fromPoints([for (final r in g) LatLng(r.dbl('latitude'), r.dbl('longitude'))]),
+                  padding: const EdgeInsets.all(60), maxZoom: 18)),
+              child: Container(
+                decoration: BoxDecoration(color: CS.ink, shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 3),
+                    boxShadow: const [BoxShadow(color: Colors.black38, blurRadius: 5)]),
+                alignment: Alignment.center,
+                child: Text('${g.length}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+              ),
+            ),
+          ),
+        ));
+      }
+    }
+    return MarkerLayer(markers: markers);
   }
 }

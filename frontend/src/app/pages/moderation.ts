@@ -38,7 +38,7 @@ import { ToastService } from '../core/toast.service';
             @for (s of suggestions(); track s.id) {
               <li [style.--c]="color(s.crimeType)">
                 <div class="main">
-                  <a [href]="s.url" target="_blank" rel="noopener noreferrer" class="headline">{{ s.title }} ↗</a>
+                  <a [href]="s.url" target="_blank" rel="noopener noreferrer" class="headline">{{ s.title }} <i class="pi pi-external-link ext" aria-hidden="true"></i></a>
                   <p class="small meta">
                     <span class="type-tag">{{ label(s.crimeType) }}</span>
                     <span class="muted">{{ pct(s.confidence) }}% confident</span>
@@ -97,7 +97,7 @@ import { ToastService } from '../core/toast.service';
                   <span class="type-tag">{{ label(r.crimeType) }}</span>
                   <p class="desc">{{ r.description }}</p>
                   <p class="muted small">
-                    @if (r.confirmations) { <strong class="conf">👁 {{ r.confirmations }} confirmed</strong> · }
+                    @if (r.confirmations) { <strong class="conf"><i class="pi pi-eye" aria-hidden="true"></i> {{ r.confirmations }} confirmed</strong> · }
                     @if (r.reporterTrust === 'TRUSTED') { <strong class="tr-ok">Trusted reporter</strong> · }
                     @if (r.reporterTrust === 'LOW') { <strong class="tr-low">Low-trust reporter</strong> · }
                     @if (r.reporterTrust === 'NEW') { <span>New reporter</span> · }

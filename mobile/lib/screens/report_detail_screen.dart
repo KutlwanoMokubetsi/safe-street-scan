@@ -124,9 +124,10 @@ class _ReportDetailScreenState extends State<ReportDetailScreen> {
                           const SizedBox(height: 6),
                           Text('${r.opt('locationName') ?? 'Pinned location'} · ${timeAgo(r.opt('occurredAt'))}', style: const TextStyle(color: CS.muted)),
                           if (r['source'] == 'NEWS' && r['sourceUrl'] != null)
-                            TextButton(onPressed: () => launchUrl(Uri.parse(r.str('sourceUrl')), mode: LaunchMode.externalApplication),
-                                child: Text('From the news, checked by a moderator: ${r.opt('sourceName') ?? 'source'}')),
-                          if (r.flag('reporterTrusted')) Text('✓ ${t('seen.trusted')}', style: const TextStyle(color: CS.safe, fontWeight: FontWeight.w600)),
+                            TextButton.icon(onPressed: () => launchUrl(Uri.parse(r.str('sourceUrl')), mode: LaunchMode.externalApplication),
+                                icon: const Icon(Icons.open_in_new, size: 18),
+                                label: Text('From the news, checked by a moderator: ${r.opt('sourceName') ?? 'source'}')),
+                          if (r.flag('reporterTrusted')) IconLabel(Icons.verified, t('seen.trusted'), color: CS.safe, style: const TextStyle(fontWeight: FontWeight.w600), size: 18),
                           const SizedBox(height: 10),
                           Wrap(spacing: 10, runSpacing: 8, crossAxisAlignment: WrapCrossAlignment.center, children: [
                             if (!r.flag('mine') && r['status'] != 'REJECTED')

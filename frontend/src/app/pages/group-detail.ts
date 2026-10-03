@@ -17,7 +17,7 @@ import { ToastService } from '../core/toast.service';
   imports: [FormsModule, RouterLink, TPipe],
   template: `
     <div class="page">
-      <a routerLink="/groups" class="back">← {{ 'groups.title' | t }}</a>
+      <a routerLink="/groups" class="back"><i class="pi pi-arrow-left" aria-hidden="true"></i> {{ 'groups.title' | t }}</a>
       @if (g(); as g) {
         <div class="page-head">
           <div>
@@ -46,7 +46,7 @@ import { ToastService } from '../core/toast.service';
               <ul class="posts">
                 @for (p of g.posts; track p.id) {
                   <li [class.alert]="p.alert">
-                    <div class="row"><strong>{{ p.alert ? '⚠ ' : '' }}{{ p.author }}</strong><span class="muted small">{{ ago(p.createdAt) }}</span></div>
+                    <div class="row"><strong>@if (p.alert) { <i class="pi pi-exclamation-triangle alert-ico" aria-hidden="true"></i> }{{ p.author }}</strong><span class="muted small">{{ ago(p.createdAt) }}</span></div>
                     <p class="pb">{{ p.body }}</p>
                     @if (p.mine || isAdmin(g)) { <button type="button" class="link danger" (click)="deletePost(p)">Delete</button> }
                   </li>

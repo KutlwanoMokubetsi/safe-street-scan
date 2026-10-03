@@ -119,7 +119,8 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
                           ),
                           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                             Row(children: [
-                              Expanded(child: Text('${p.flag('alert') ? '⚠ ' : ''}${p.str('author')}', style: const TextStyle(fontWeight: FontWeight.w700))),
+                              if (p.flag('alert')) const Padding(padding: EdgeInsets.only(right: 6), child: Icon(Icons.warning_amber_rounded, color: CS.risk, size: 20)),
+                              Expanded(child: Text(p.str('author'), style: const TextStyle(fontWeight: FontWeight.w700))),
                               Text(timeAgo(p.opt('createdAt')), style: const TextStyle(color: CS.muted, fontSize: 13)),
                             ]),
                             const SizedBox(height: 4),

@@ -76,7 +76,7 @@ const Map<String, List<String>> kStrings = {
   "live.sharing": ["Sharing your location", "Deel jou ligging", "Wabelana ngendawo okuyo", "Wabelana ngendawo okuyo"],
   "live.stop": ["Stop", "Stop", "Misa", "Yeka"],
   "live.view": ["View", "Bekyk", "Buka", "Jonga"],
-  "login.back": ["← Back to home", "← Terug na tuis", "← Buyela ekhaya", "← Buyela ekhaya"],
+  "login.back": ["Back to home", "Terug na tuis", "Buyela ekhaya", "Buyela ekhaya"],
   "login.create": ["Create an account with email", "Skep 'n rekening met e-pos", "Vula i-akhawunti nge-imeyili", "Yenza iakhawunti nge-imeyile"],
   "login.email": ["Sign in with email", "Meld aan met e-pos", "Ngena nge-imeyili", "Ngena nge-imeyile"],
   "login.google": ["Continue with Google", "Gaan voort met Google", "Qhubeka nge-Google", "Qhubeka nge-Google"],

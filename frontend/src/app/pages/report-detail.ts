@@ -15,7 +15,7 @@ import { TPipe } from '../core/i18n';
   imports: [FormsModule, RouterLink, TPipe],
   template: `
     <div class="page narrow">
-      <a routerLink="/map" class="back">← Map</a>
+      <a routerLink="/map" class="back"><i class="pi pi-arrow-left" aria-hidden="true"></i> Map</a>
 
       @if (error()) {
         <p class="panel panel-body">{{ error() }}</p>
@@ -28,13 +28,13 @@ import { TPipe } from '../core/i18n';
           <p class="desc">{{ r.description }}</p>
           <p class="muted small">{{ r.locationName || 'Pinned location' }} · {{ ago(r.occurredAt) }}</p>
           @if (r.source === 'NEWS' && r.sourceUrl) {
-            <p class="small news-src">From the news, checked by a moderator: <a [href]="r.sourceUrl" target="_blank" rel="noopener noreferrer">{{ r.sourceName || 'source' }} ↗</a></p>
+            <p class="small news-src">From the news, checked by a moderator: <a [href]="r.sourceUrl" target="_blank" rel="noopener noreferrer">{{ r.sourceName || 'source' }} <i class="pi pi-external-link ext" aria-hidden="true"></i></a></p>
           }
-          @if (r.reporterTrusted) { <p class="small trusted">✓ {{ 'seen.trusted' | t }}</p> }
+          @if (r.reporterTrusted) { <p class="small trusted"><i class="pi pi-verified" aria-hidden="true"></i> {{ 'seen.trusted' | t }}</p> }
           <div class="seen-row">
             @if (!r.mine && r.status !== 'REJECTED') {
               <button type="button" class="btn btn-sm" [class.on]="r.confirmedByMe" (click)="toggleSeen(r)" [attr.aria-pressed]="!!r.confirmedByMe">
-                👁 {{ 'seen.button' | t }}
+                <i class="pi" [class.pi-eye]="!r.confirmedByMe" [class.pi-check]="r.confirmedByMe" aria-hidden="true"></i> {{ 'seen.button' | t }}
               </button>
             }
             @if (r.confirmations) { <span class="muted small">{{ 'seen.count' | t: { n: r.confirmations } }}</span> }

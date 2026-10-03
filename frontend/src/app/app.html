@@ -23,13 +23,14 @@
 
     <div class="right">
       <a routerLink="/sos" class="btn sos-btn">SOS</a>
-      <a routerLink="/report" class="btn btn-vest report-btn">{{ 'nav.report' | t }}</a>
+      <a routerLink="/report" class="btn btn-vest report-btn"><i class="pi pi-plus" aria-hidden="true"></i> <span class="report-full">{{ 'nav.report' | t }}</span><span class="report-short">{{ 'nav.reportShort' | t }}</span></a>
       <a routerLink="/profile" class="avatar" [attr.aria-label]="'Your profile. ' + (realtime.connected() ? 'Live updates on' : 'Connecting')">
         @if (avatar()) { <img [src]="avatar()" alt="" class="pic"> } @else { {{ initials() }} }<span class="conn" [class.on]="realtime.connected()" aria-hidden="true"></span>
       </a>
     </div>
   </header>
 
+  <div class="notices">
   @if (online() && apiDown()) {
     <div class="offline down" role="alert">{{ 'common.apiDown' | t }}</div>
   }
@@ -85,6 +86,7 @@
       }
     </div>
   }
+  </div>
 }
 
 <main>
@@ -104,7 +106,7 @@
   @for (t of toast.toasts(); track t.id) {
     <div class="toast" [class.error]="t.kind === 'error'" role="status">
       <span>{{ t.text }}</span>
-      <button type="button" (click)="toast.dismiss(t.id)" aria-label="Dismiss">×</button>
+      <button type="button" (click)="toast.dismiss(t.id)" aria-label="Dismiss"><i class="pi pi-times" aria-hidden="true"></i></button>
     </div>
   }
 </div>
