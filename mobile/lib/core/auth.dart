@@ -12,7 +12,8 @@ class Auth {
   static final instance = Auth._();
 
   final _appAuth = const FlutterAppAuth();
-  final _store = const FlutterSecureStorage(aOptions: AndroidOptions(encryptedSharedPreferences: true));
+  // Standard Android Keystore storage. (The EncryptedSharedPreferences option fails on some phones.)
+  final _store = const FlutterSecureStorage();
   final signedIn = ValueNotifier<bool>(false);
   final user = ValueNotifier<Map<String, dynamic>?>(null);
 
@@ -35,8 +36,14 @@ class Auth {
 
   /// Restore the saved session. Returns true if signed in.
   Future<bool> restore() async {
-    _refresh = await _store.read(key: 'refresh');
-    _idToken = await _store.read(key: 'id');
+    try {
+      _refresh = await _store.read(key: 'refresh');
+      _idToken = await _store.read(key: 'id');
+    } catch (e) {
+      debugPrint('Token storage unreadable, signing in again: $e');
+      await _wipeStore();
+      return false;
+    }
     if (_refresh == null) return false;
     final token = await validAccessToken(force: true);
     signedIn.value = token != null;
@@ -88,8 +95,13 @@ class Auth {
     _refresh = refresh;
     _idToken = id;
     _expires = expires ?? DateTime.now().add(const Duration(minutes: 4));
-    if (refresh != null) await _store.write(key: 'refresh', value: refresh);
-    if (id != null) await _store.write(key: 'id', value: id);
+    // Saving must never break sign-in: if the phone's secure storage fails, stay signed in for this session.
+    try {
+      if (refresh != null) await _store.write(key: 'refresh', value: refresh);
+      if (id != null) await _store.write(key: 'id', value: id);
+    } catch (e) {
+      debugPrint('Could not save the session on this phone: $e');
+    }
   }
 
   Future<void> signOut() async {
@@ -106,9 +118,15 @@ class Auth {
   Future<void> signedOut() async {
     _access = _refresh = _idToken = null;
     _expires = null;
-    await _store.deleteAll();
+    await _wipeStore();
     user.value = null;
     signedIn.value = false;
+  }
+
+  Future<void> _wipeStore() async {
+    try {
+      await _store.deleteAll();
+    } catch (_) {}
   }
 
   /// Subject claim from the access token, for diagnostics.

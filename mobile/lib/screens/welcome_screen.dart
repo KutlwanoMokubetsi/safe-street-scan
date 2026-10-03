@@ -19,7 +19,21 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     try {
       await Auth.instance.signIn(google: google, register: register);
     } catch (e) {
-      if (mounted) snack(context, 'Sign-in was cancelled or failed. Try again.', error: true);
+      debugPrint('Sign-in failed: $e');
+      if (mounted) {
+        final cancelled = '$e'.toLowerCase().contains('cancel');
+        // Show the real reason, so problems can be diagnosed from a screenshot.
+        await showDialog<void>(
+          context: context,
+          builder: (c) => AlertDialog(
+            title: Text(cancelled ? 'Sign-in cancelled' : "Couldn't sign in"),
+            content: SingleChildScrollView(child: SelectableText(cancelled
+                ? 'The sign-in page was closed before it finished. Try again.'
+                : 'Details: $e')),
+            actions: [TextButton(onPressed: () => Navigator.pop(c), child: const Text('OK'))],
+          ),
+        );
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }
