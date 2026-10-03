@@ -80,6 +80,10 @@ perms = ['INTERNET', 'ACCESS_NETWORK_STATE', 'ACCESS_FINE_LOCATION', 'ACCESS_COA
 block = ''.join(f'    <uses-permission android:name="android.permission.{p}"/>\n' for p in perms)
 x = sub(r'(<manifest[^>]*>\n)', r'\1' + block, x, 'permissions')
 x = sub(r'android:label="[^"]+"', 'android:label="CrimeSpot"', x, 'label')
+# Flutter's template sets android:taskAffinity="" on MainActivity. That makes Android deliver the sign-in
+# redirect into a separate task, so flutter_appauth reports "User cancelled flow" even after a successful login.
+x, n = re.subn(r'\s*android:taskAffinity=""', '', x)
+print(f'sign-in redirect: removed taskAffinity="" ({n})')
 # Android 11+ package visibility for phone calls, SMS, maps and links
 queries = '''    <queries>
         <intent><action android:name="android.intent.action.VIEW"/><data android:scheme="https"/></intent>
