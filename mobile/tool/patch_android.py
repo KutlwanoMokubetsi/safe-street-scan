@@ -52,6 +52,27 @@ else:
 s += '\ndependencies {\n    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")\n}\n'
 open(app, 'w').write(s)
 
+# Some plugins pin an old compileSdk (e.g. flutter_appauth uses 33), but current AndroidX libraries need 34+.
+# Compile every Android module against 36. This doesn't change which phones can install the app (that's minSdk).
+root = 'android/build.gradle.kts'
+r = open(root).read()
+force = """
+// Added by tool/patch_android.py: compile all plugins against a current Android SDK.
+subprojects {
+    val forceCompileSdk: Project.() -> Unit = {
+        extensions.findByType(com.android.build.gradle.BaseExtension::class.java)?.compileSdkVersion(36)
+    }
+    if (state.executed) forceCompileSdk() else afterEvaluate { forceCompileSdk() }
+}
+"""
+anchor = 'subprojects {\n    project.evaluationDependsOn(":app")'
+if anchor in r:
+    r = r.replace(anchor, force.strip() + '\n' + anchor, 1)   # must come before evaluationDependsOn
+else:
+    r += force
+open(root, 'w').write(r)
+print('plugins: compileSdk 36')
+
 m = 'android/app/src/main/AndroidManifest.xml'
 x = open(m).read()
 perms = ['INTERNET', 'ACCESS_NETWORK_STATE', 'ACCESS_FINE_LOCATION', 'ACCESS_COARSE_LOCATION', 'FOREGROUND_SERVICE',
